@@ -1,78 +1,79 @@
 using System;
-public abstract class Staff
+using System.Collections.Generic;
+
+// Abstract base class
+public abstract class SubscriberBase
 {
-    public string Name { get; set; }
-    public abstract void Work();
+    public abstract void OnNotificationReceived(string message);
 }
- 
-public class Waiter : Staff
+
+// EmailSubscriber class
+public class EmailSubscriber : SubscriberBase
 {
-    public List<string> Orders = new List<string>();
- 
-    public void TakeOrder(string order)
+    public override void OnNotificationReceived(string message)
     {
-        Orders.Add(order);
-    }
- 
-    public void ServeFood()
-    {
-        Orders.Clear();
-    }
- 
-    public override void Work()
-    {
-        Console.WriteLine($"{Name} is serving customers.");
+        Console.WriteLine($"EmailSubscriber: Received update - {message}");
     }
 }
- 
-public class Chef : Staff
+
+// SMSSubscriber class
+public class SMSSubscriber : SubscriberBase
 {
-    public List<string> Menu = new List<string>();
- 
-    public void Cook(string dish)
+    public override void OnNotificationReceived(string message)
     {
-        Menu.Add(dish);
-        Console.WriteLine($"{Name} cooked {dish}");
-    }
- 
-    public override void Work()
-    {
-        Console.WriteLine($"{Name} is cooking.");
+        Console.WriteLine($"SMSSubscriber: Received update - {message}");
     }
 }
-public class VipWaiter : Waiter
+
+// Publisher class using events and delegates
+public class Publisher
 {
-    public void PriorityServe()
+    public delegate void NotificationDelegate(string message);
+    public event NotificationDelegate NotificationEvent;
+
+    public List<SubscriberBase> Subscribers { get; } = new List<SubscriberBase>();
+
+    public void AddSubscriber(SubscriberBase subscriber)
     {
-        Console.WriteLine("Priority service for VIP guest completed.");
+        NotificationEvent += subscriber.OnNotificationReceived;
+        Subscribers.Add(subscriber);
     }
- 
-    public override void Work()
+
+    public void RemoveSubscriber(SubscriberBase subscriber)
     {
-        Console.WriteLine("Serving VIP guest.");
+        NotificationEvent -= subscriber.OnNotificationReceived;
+        Subscribers.Remove(subscriber);
+    }
+
+    public void SendNotification(string message)
+    {
+        NotificationEvent?.Invoke(message);
     }
 }
-// Unit Tests
-[TestClass]
-public class RestaurantTests
+
+// Demonstration
+class Program
 {
-    [TestMethod]
-    public void TestWaiterServeFood()
+    static void Main(string[] args)
     {
-        Waiter w = new Waiter();
-        w.TakeOrder("Burger");
-        w.ServeFood();
- 
-        //Assert.AreEqual(1, w.Orders.Count); // This fails
-        Assert.AreEqual(0, w.Orders.Count);
-    }
- 
-    [TestMethod]
-    public void TestChefCook()
-    {
-        Chef c = new Chef();
-        c.Cook("Pasta");
- 
-        Assert.IsTrue(c.Menu.Contains("Pasta"));
-    }
+        Publisher publisher = new Publisher();
+
+        // Create subscribers dynamically
+        EmailSubscriber emailSubscriber = new EmailSubscriber();
+        SMSSubscriber smsSubscriber = new SMSSubscriber();
+
+        // Add subscribers
+        publisher.AddSubscriber(emailSubscriber);
+        publisher.AddSubscriber(smsSubscriber);
+
+        // Send a notification (Publisher triggers event)
+        publisher.SendNotification("Stock Price Changed");
+
+        // Remove an email subscriber dynamically
+        publisher.RemoveSubscriber(emailSubscriber);
+        publisher.RemoveSubscriber(smsSubscriber);
+
+
+        // Send another notification
+        publisher.SendNotification("Market Closed");}
 }
