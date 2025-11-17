@@ -1,3 +1,84 @@
+Explanation: 
+
+System.io namespace used to perform input and output operations while working on files. 
+
+Filepath: represent the name of csv file 
+
+File.ReadLines() method is used to read all the lines efficiently from the respective file. 
+
+Used foreach to iterate over each line in the file. 
+
+Line.Split(‘,’) : breaks the line into its individual data fields by splitting where a comma occurs, splitting the line into parts is essential to convert the raw data into a structured data (in array format of strings) . 
+
+I  have created the instance for Employee class and used employees.Add() method to add this newly created Employee object to the list called employees. Here we are converting the raw data to stuctured format. 
+
+Employees.GroupBy.(e => e.Department) : employees is a collection (list) of Employee details. 
+
+ Here groupby is used to group employees by their department property.each group represented by key. 
+
+Like if you have employees from hr,it,sales , groupby creates 3 groups keyed by those department names. 
+
+Select(g => new { Department = g.Key, AverageSalary = g.Average(e => e.Salary) :  
+
+ 
+
+Here e is one employee obj at a time as the groupby method loops. 
+
+Here g represents a group of items created by groupby method. Each g is a collection of employees who belongs to the same department. 
+
+Here g.key tells you which department the employees inside the group belong to. 
+
+Here i am taking average of all salaries e => e.Salary use salary property of each employee in the group to compute the average. 
+
+ 
+
+Difference b/w csv and txt :  
+
+Csv uses commas to seperate fields. 
+
+Best because it enables structured data processing with easy parsing of rows and columns. 
+
+Txt read them like plain text. 
+
+                      Best because it supports flexible and simple free text format storage, no parsing constraints needed. 
+
+
+    2.
+    Delegate: it is a type safe function pointer that allows methods to be reffered and invoked dynamically. It provides a way to treat methods as objects enabling senarios like event handling and function styling. 
+
+ 
+
+Event : an event is a notification sent by an obj to signal the occurance of an action. 
+
+ 
+
+Delegates defines what type of notification methods you can use. 
+
+String meassage : the delegate defines the signature of methods it can reference, this means any method assigned to this delegate must accept string parameter call message. 
+
+Event allows many methods to subscribe for notification and lets publisher trigger them all together. 
+
+Here i used list that stores subscriberbase objects(sms/email subscribers) i used gettter because only publisher class should modify the list. 
+
+I implemented add and remove methods with subscriber as parameter of type SubscriberBase. 
+
+Notification += subscriber.onnotificationreceived : adds subscribers method to the event list to receive notification. 
+
+Notification -= subscriber.onnotificationreceived : removes subscribers method from event so it wont receive notification. 
+
+Here onnotificationreceived methods are subscribers methods. They are assigned to delegate because their signature matchs it.when the event is raised these, methods are invoked to handle the notification.subscriber methods are event handler methods that get assigned to delegate to react to notification from publisher. 
+
+Then i am checking notification event  not null then pass the string msg to the each subscriber method. Null means no subscribers 
+
+Real time example :  
+
+The delegate is the blue print specifying the type of methods allowed as subscribers to the event. Like string message 
+
+The event builds on delegate managing the actual list of such methods that will be called when news is published.event holds a list of subscribers methods which confirm the delegatetype allows subscribers to add or remove by themselves 
+
+When news company publishes news it raises the event which calls all subscriber methods in the list. 
+
+
 Section 1: Small Coding Questions (4 Questions)
 Q1. Fix the Code – Nullable Types & Conditionals
 The following code throws a runtime error. Identify the issue and modify it so that it works correctly with nullable types.
