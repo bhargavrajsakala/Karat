@@ -296,6 +296,25 @@ public class Program
     }
 }
 
+explanation:
+
+Getter (get):
+The getter checks if the internal list marks is null. If it is null, it returns a new empty list instead of returning null. 
+    This avoids possible null reference exceptions in client code that accesses Marks. If marks is not null, it returns the actual list.
+
+Setter (set):
+The setter accepts a value and checks if it's null.
+    If the incoming value is null, it initializes marks to an empty list instead of null. Otherwise, it sets marks to the provided list.
+    This ensures the internal marks field never becomes null, preserving class invariants.
+        Why overriding ToString() is important:
+It gives a meaningful, human-readable string that summarizes the object (like "Id: 1, Name: Alice").
+ The Average() method is used to calculate the average (arithmetic mean) of the numbers in a collection  
+ Where filters a collection based on a condition. Only students who satisfy the condition will be kept.
+    OrderBy sorts the filtered students based on a key, here the student’s name in alphabetical order.
+    For each student s in the collection, a new anonymous object is created with two properties:
+Student = s : This property holds the entire current student object.
+AverageMarks = s.CalculateAverageMarks() : This property holds the average marks for the current student, calculated by calling the method CalculateAverageMarks().
+
     
 Case Study 2: File Processing + OOP + Delegates
 Scenario:
