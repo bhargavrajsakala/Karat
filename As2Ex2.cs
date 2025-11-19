@@ -60,40 +60,41 @@ Console.WriteLine("Total letters = " + total);
 ---
 
 ## **Q3. Fix the Deadlock – Locking Error**
-
 The following code causes a deadlock in some scenarios:
-
 ```csharp
 class Example
-{
-    private object lock1 = new object();
+{ private object lock1 = new object();
     private object lock2 = new object();
-
-    public void MethodA()
-    {
-        lock (lock1)
-        {
-            Thread.Sleep(100);
-            lock (lock2) { }
-        }
-    }
-
-    public void MethodB()
-    {
-        lock (lock2)
-        {
-            Thread.Sleep(100);
-            lock (lock1) { }
-        }
-    }
-}
-```
-
-**Requirements:**
-
+public void MethodA()
+    {lock (lock1)
+        {Thread.Sleep(100);
+            lock (lock2) { }}}
+public void MethodB()
+    {lock (lock2)
+        {Thread.Sleep(100);
+            lock (lock1) { }}}}
 * Identify why deadlock happens.
 * Refactor locking strategy to avoid circular dependency.
 * Keep the two-method structure intact.
+
+    explanation : 
+in methodA first lock1 and then lock2 reverse in MethodB.
+if thread 1 calls methodA and acquires lock1, then sleeps and acquires lock2.
+At same time, thread 2 calls methodB reversly holds locks here both threads hold one thread and wait for other, 
+causing a dependency and a dead lock.
+
+    solution : 
+class Example
+{ private object lock1 = new object();
+    private object lock2 = new object();
+public void MethodA()
+    {lock (lock1)
+        {Thread.Sleep(100);
+            lock (lock2) { }}}
+public void MethodB()
+    {lock (lock1)
+        {Thread.Sleep(100);
+            lock (lock2) { }}}}
 
 ---
 
@@ -118,6 +119,18 @@ Console.WriteLine(string.Join(", ", nums));
 * Fix removal logic without exceptions.
 * Preserve original intention: remove odd numbers.
 * Keep memory usage minimal.
+solution :
+List<int> nums = new List<int> { 1, 2, 3, 4, 5, 6 };
+
+nums.RemoveAll(x => x%2 != 0)
+
+Console.WriteLine(string.Join(", ", nums));
+
+    explanation :
+here in foreach index starts from 0 which is value 1 and it removes it in list which leads to mismatch of list ,
+then while enumarator checks the list it was mismatch so it will throw exception.
+instead of that write remove all method.
+    
 
 ---
 
