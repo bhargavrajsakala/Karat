@@ -1,304 +1,81 @@
-Section 1: Small Coding Questions (4 Questions)**
-
-(Including threading, async, tasks, parallel loops, thread safety)
-
----
-
-## **Q1. Fix the Code – Task and Async/Await Issue**
-
-The following method is intended to download data asynchronously, but the output prints before the data is ready.
-
-```csharp
-public static async Task<string> GetData()
-{
-    Task<string> t = Task.Run(() =>
-    {
-        Thread.Sleep(2000);
-        return "Download complete";
-    });
-
-    return t.Result;
-}
-
-static void Main()
-{
-    var msg = GetData();
-    Console.WriteLine(msg);
-}
-```
-
-**Requirements:**
-
-* Identify the async/await issue.
-* Fix the method so asynchronous flow works correctly.
-* Ensure no blocking on `.Result` or `.Wait()`.
-
----
-
-## **Q2. Debug the Code – Parallel.ForEach Not Working Correctly**
-
-The code below counts words in parallel but produces incorrect totals.
-
-```csharp
-int total = 0;
-List<string> words = new List<string> { "a", "bb", "ccc", "dddd" };
-
-Parallel.ForEach(words, w =>
-{
-    total += w.Length;
-});
-
-Console.WriteLine("Total letters = " + total);
-```
-
-**Requirements:**
-
-* Identify why the result is inconsistent.
-* Ensure thread-safe accumulation.
-* Fix the code using any safe construct (lock, Interlocked, thread-safe collections).
-
----
-
-## **Q3. Fix the Deadlock – Locking Error**
-The following code causes a deadlock in some scenarios:
-```csharp
-class Example
-{ private object lock1 = new object();
-    private object lock2 = new object();
-public void MethodA()
-    {lock (lock1)
-        {Thread.Sleep(100);
-            lock (lock2) { }}}
-public void MethodB()
-    {lock (lock2)
-        {Thread.Sleep(100);
-            lock (lock1) { }}}}
-* Identify why deadlock happens.
-* Refactor locking strategy to avoid circular dependency.
-* Keep the two-method structure intact.
-
-    explanation : 
-in methodA first lock1 and then lock2 reverse in MethodB.
-if thread 1 calls methodA and acquires lock1, then sleeps and acquires lock2.
-At same time, thread 2 calls methodB reversly holds locks here both threads hold one thread and wait for other, 
-causing a dependency and a dead lock.
-
-    solution : 
-class Example
-{ private object lock1 = new object();
-    private object lock2 = new object();
-public void MethodA()
-    {lock (lock1)
-        {Thread.Sleep(100);
-            lock (lock2) { }}}
-public void MethodB()
-    {lock (lock1)
-        {Thread.Sleep(100);
-            lock (lock2) { }}}}
-
----
-
-## **Q4. Fix the Code – List Modified While Enumerating**
-
-This code attempts to remove odd numbers but throws an exception:
-
-```csharp
-List<int> nums = new List<int> { 1, 2, 3, 4, 5, 6 };
-
-foreach (var n in nums)
-{
-    if (n % 2 == 1)
-        nums.Remove(n);
-}
-
-Console.WriteLine(string.Join(", ", nums));
-```
-
-**Requirements:**
-
-* Fix removal logic without exceptions.
-* Preserve original intention: remove odd numbers.
-* Keep memory usage minimal.
-solution :
-List<int> nums = new List<int> { 1, 2, 3, 4, 5, 6 };
-
-nums.RemoveAll(x => x%2 != 0)
-
-Console.WriteLine(string.Join(", ", nums));
-
-    explanation :
-here in foreach index starts from 0 which is value 1 and it removes it in list which leads to mismatch of list ,
-then while enumarator checks the list it was mismatch so it will throw exception.
-instead of that write remove all method.
-    
-
----
-
-**Section 2: Case Studies (2 Questions)**
-
-**Case Study 1: Event Processing System With Tasks + async/await + File I/O**
-
-### **Scenario:**
-
-You are building a system that processes event messages asynchronously and logs results to a file. Events come from a collection and must be processed using asynchronous methods + thread-safe logging.
-
----
-
-```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 
-class EventProcessor
-{
-    private readonly object fileLock = new object();
-
-    public async Task<string> ProcessEventAsync(string evt)
-    {
-        // TODO:
-        // 1. Simulate async processing (Task.Delay)
-        // 2. Transform event string to upper case
-        // 3. Return processed result
-
-        throw new NotImplementedException();
-    }
-
-    public void LogResult(string path, string result)
-    {
-        // TODO:
-        // 1. Use StreamWriter in append mode
-        // 2. Ensure thread-safe access using fileLock
-        // 3. Write result to file
-
-        throw new NotImplementedException();
-    }
-}
-
-class Program
-{
-    static async Task Main()
-    {
-        List<string> eventsList = new List<string>
-        {
-            "login",
-            "click",
-            "purchase",
-            "logout"
-        };
-
-        EventProcessor processor = new EventProcessor();
-
-        // TODO:
-        // 1. Process all events using Task.WhenAll
-        // 2. Log each processed event result
-        // 3. Ensure no race condition in file writing
-
-        Console.WriteLine("All events processed.");
-    }
-}
-```
-
----
-
-### **Requirements:**
-
-* Implement async event processing with Task.Delay
-* Process all events concurrently using `Task.WhenAll`
-* Use thread-safe logging with `lock`
-* Use StreamWriter in append mode
-* Avoid race conditions and inconsistent writes
-
----
-
-**Case Study 2: Order Calculation Engine Using Parallel.ForEach + Thread Safety + Delegates**
-
-### **Scenario:**
-
-You run a high-performance order processing pipeline.
-There are thousands of orders processed in parallel using `Parallel.ForEach`.
-Each order uses a **delegate-based pricing rule** to compute a final amount.
-
-Your job: complete the program ensuring:
-✔ Thread-safety
-✔ Correct pricing
-✔ Summary calculations using atomic operations
-✔ No shared-state corruption
-
-
-```csharp
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading;
-
-public delegate double PricingRule(double amount);
-
-class Order
+public class Customer
 {
     public int Id { get; set; }
-    public double Amount { get; set; }
+    public string Name { get; set; }
 }
 
-class OrderEngine
+public interface ICustomerRepository
 {
-    public ConcurrentBag<double> FinalAmounts = new ConcurrentBag<double>();
-    public int ProcessedCount = 0;
+    void Add(Customer c);
+    Customer Get(int id);
+}
 
-    public double ApplyPricingRule(Order order, PricingRule rule)
+public class InMemoryCustomerRepository : ICustomerRepository
+{
+    private readonly List<Customer> _db = new List<Customer>();
+
+    public void Add(Customer c)
     {
-        // TODO:
-        // 1. Apply rule and return final amount
-        throw new NotImplementedException();
+        _db.Add(c);
     }
 
-    public void ProcessOrders(IEnumerable<Order> orders, PricingRule rule)
+    public Customer Get(int id)
     {
-        // TODO:
-        // 1. Use Parallel.ForEach to process orders concurrently
-        // 2. For each order:
-        // a) Apply pricing rule
-        // b) Add final amount to FinalAmounts thread-safely
-        // c) Increment ProcessedCount using Interlocked
-        throw new NotImplementedException();
+        foreach (Customer c in _db)
+        {
+            if (c.Id == id)
+            {
+                return c;
+            }
+        }
+        return null;
+    }
+}
+
+public class CustomerService
+{
+    private readonly ICustomerRepository _repo;
+
+    public CustomerService(ICustomerRepository repo)
+    {
+        _repo = repo;
+    }
+
+    public void PrintCustomer(int id)
+    {
+        var customer = _repo.Get(id);
+        if (customer == null)
+            Console.WriteLine($"Customer {id} not found!");
+        else
+            Console.WriteLine($"Customer: {customer.Id} - {customer.Name}");
     }
 }
 
 class Program
 {
-    static void Main()
+    static void Main(string[] args)
     {
-        List<Order> orders = new List<Order>
-        {
-            new Order { Id = 1, Amount = 1000 },
-            new Order { Id = 2, Amount = 1500 },
-            new Order { Id = 3, Amount = 2000 }
-        };
+        var builder = Host.CreateDefaultBuilder(args)
+            .ConfigureServices(services =>
+            {
+                services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>();
+                services.AddTransient<CustomerService>();
+            });
 
-        PricingRule discountRule = amt => amt * 0.85; // 15% discount
+        var app = builder.Build();
 
-        OrderEngine engine = new OrderEngine();
+        var repo = app.Services.GetRequiredService<ICustomerRepository>();
+        repo.Add(new Customer { Id = 1, Name = "Alice" });
+        repo.Add(new Customer { Id = 2, Name = "Bob" });
 
-        // TODO:
-        // 1. Run ProcessOrders
-        // 2. Print total processed count
-        // 3. Print all final amounts
-        // 4. Print sum of all final amounts using LINQ
-
-        Console.WriteLine("Order processing complete.");
+        var service = app.Services.GetRequiredService<CustomerService>();
+        service.PrintCustomer(1);
+        service.PrintCustomer(2);
+        service.PrintCustomer(99);
     }
 }
-```
-
----
-
-### **Requirements:**
-
-* Use `Parallel.ForEach`
-* Ensure thread-safety using:
-
-  * `ConcurrentBag<T>`
-  * `Interlocked.Increment`
-* Apply delegate pricing rule
-* Summarize results safely
