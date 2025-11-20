@@ -1,35 +1,77 @@
 using System;
-using System.IO;
 
-public class Order
+public sealed class AppConfig
 {
-    public int Id { get; set; }
-    public double Amount { get; set; }
-}
+    private static readonly object _lock = new object();
+    private static AppConfig _instance;
 
-public delegate double DiscountRule(double amount);
+    public string HandlerType { get; private set; }
 
-public class OrderProcessor
-{
-    public double ApplyDiscountRule(Order order, DiscountRule rule)
+    private AppConfig()
     {
-        return rule(order.Amount);
+        // Hardcoding handler type for this example
+        HandlerType = "Email"; 
     }
 
-    public void SaveResultToFile(string path, Order order, double finalAmount)
+    public static AppConfig Instance
     {
-        string line = order.Id + "," + order.Amount.ToString("F2") + "," + finalAmount.ToString("F2");
-
-        try
+        get
         {
-            using (StreamWriter sw = new StreamWriter(path, append: true))
+            if (_instance == null)
             {
-                sw.WriteLine(line);
+                lock (_lock)
+                {
+                    if (_instance == null)
+                    {
+                        _instance = new AppConfig();
+                    }
+                }
             }
+            return _instance;
         }
-        catch (Exception ex)
+    }
+}
+
+public interface IHandler
+{
+    void Handle(string msg);
+}
+
+public class EmailHandler : IHandler
+{
+    public void Handle(string msg)
+    {
+        // Simulate email sending logic
+        Console.WriteLine($"EmailHandler: Sending email with message: {msg}");
+    }
+}
+
+public class PushNotificationHandler : IHandler
+{
+    public void Handle(string msg)
+    {
+        // Simulate push notification logic
+        Console.WriteLine($"PushNotificationHandler: Sending push notification with message: {msg}");
+    }
+}
+
+public static class HandlerFactory
+{
+    public static IHandler Create()
+    {
+        string type = AppConfig.Instance.HandlerType;
+
+        if (type == "Email")
         {
-            Console.WriteLine("Error writing to file: " + ex.Message);
+            return new EmailHandler();
+        }
+        else if (type == "PushNotification")
+        {
+            return new PushNotificationHandler();
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unknown handler type: {type}");
         }
     }
 }
@@ -38,40 +80,7 @@ class Program
 {
     static void Main()
     {
-        // Use a full path or a relative path where you have write permissions
-        string path = "results.txt";
-
-        Order order = new Order { Id = 101, Amount = 1200.0 };
-
-        DiscountRule festivalDiscount = amt => amt * 0.90;       // 10% off
-        DiscountRule premiumDiscount = amt => amt - 200;         // Flat ₹200 off
-
-        OrderProcessor processor = new OrderProcessor();
-
-        // Apply festival discount and save
-        double afterFestival = processor.ApplyDiscountRule(order, festivalDiscount);
-        processor.SaveResultToFile(path, order, afterFestival);
-
-        // Apply premium discount and save
-        double afterPremium = processor.ApplyDiscountRule(order, premiumDiscount);
-        processor.SaveResultToFile(path, order, afterPremium);
-
-        Console.WriteLine("Discounts applied and results saved to: " + Path.GetFullPath(path));
+        var handler = HandlerFactory.Create();
+        handler.Handle("Welcome!");
     }
 }
-
-
-explanation : 
-
-The reason for using ToString("F2") is to convert the number to a string formatted as a fixed-point number with exactly 2 digits after the decimal point.
-
-Why use ToString("F2")?
-The "F" stands for Fixed-point format.
-
-The number 2 specifies 2 decimal places.
-
-This ensures numbers like 1200 become "1200.00" and 1080.135 become "1080.14" (rounded).
-   
-    processor.SaveResultToFile(path, order, afterFestival);
-"This line saves the order's ID, original amount, and discounted amount after the festival discount to a specified output file for record-keeping."
-    Path.GetFullPath(path) converts a possibly relative file path into the full absolute path
