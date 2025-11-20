@@ -1,100 +1,160 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
+**1. Fix the Code – Singleton Not Working**
 
-class EventProcessor
+The following Singleton implementation creates multiple instances sometimes during multi-threaded execution.
+
+**Task:** Fix the code to ensure proper *lazy* and *thread-safe* Singleton behavior.
+
+```csharp
+public class Logger
 {
-    private readonly object fileLock = new object();
+    private static Logger _instance;
 
-    public async Task<string> ProcessEventAsync(string evt)
+    public static Logger Instance
     {
-        // Simulate async processing delay
-        await Task.Delay(500);
-        // Transform event string to upper case
-        string processed = evt.ToUpper();
-        return processed;
+        get
+        {
+            if (_instance == null)
+                _instance = new Logger(); // NOT thread safe
+            return _instance;
+        }
     }
 
-    public void LogResult(string path, string result)
+    private Logger() { }
+}
+```
+
+Requirements:
+
+* Fix thread safety
+* Ensure lazy initialization
+* No external locking object allowed
+
+---
+
+**2. Performance Issue – Inefficient Factory Lookup**
+
+A poorly implemented Factory method uses repeated `if/else` checks for every request.
+
+```csharp
+public class PaymentFactory
+{
+    public IPayment GetPayment(string type)
     {
-        // Use lock to ensure thread-safe file access
-        lock (fileLock)
+        if (type == "Card") return new CardPayment();
+        else if (type == "UPI") return new UpiPayment();
+        else if (type == "NetBanking") return new NetBanking();
+        else if (type == "Card") return new CardPayment(); // repeated
+        else return null;
+    }
+}
+```
+
+Requirements:
+
+* Improve performance
+* Avoid repeated condition checks
+* Use a pattern-friendly approach (dictionary, reflection, registration list, etc.)
+
+---
+
+**3. Write a Small Program – Simple Repository Filter**
+
+Write a small C# program that:
+
+Requirements:
+
+* Uses a `ProductRepository`
+* Implements `GetProductsByCategory(string category)`
+* Returns only matching products
+* No database required; use in-memory list
+
+---
+
+**4. Fix the Failing Test Case – DI Misconfiguration**
+
+A unit test fails because the DI container does not provide the correct service.
+
+```csharp
+[Test]
+public void ShouldReturnDiscountedPrice()
+{
+    var services = new ServiceCollection();
+    services.AddSingleton<IPriceCalculator, PriceCalculator>();
+
+    var provider = services.BuildServiceProvider();
+    var svc = provider.GetService<IPriceCalculator>();
+
+    Assert.AreEqual(90, svc.Calculate(100)); // FAILS
+}
+```
+
+Requirements:
+
+* Identify why the test fails
+* Fix the DI registration or implementation
+* Modify only dependency or registration, not assert
+
+
+**CASE STUDY 1 — Singleton + Factory Integration**
+
+A system should only load configuration once using Singleton and use that configuration inside a Factory to create the correct handler.
+
+Requirements:
+
+* Implement `AppConfig` Singleton
+* Implement `IHandler`, `EmailHandler`, `PushNotificationHandler`
+* Implement `HandlerFactory`
+* Complete the missing parts
+
+
+```csharp
+public sealed class AppConfig
+{
+    private static AppConfig _instance;
+    public string HandlerType { get; private set; }
+
+    private AppConfig()
+    {
+        // TODO: Hardcode HandlerType (e.g., "Email")
+    }
+
+    public static AppConfig Instance
+    {
+        get
         {
-            using (StreamWriter writer = new StreamWriter(path, append: true))
-            {
-                writer.WriteLine(result);
-            }
+            // TODO: thread-safe instance
         }
     }
 }
 
-class Program
+public interface IHandler
 {
-    static async Task Main()
+    void Handle(string msg);
+}
+
+public class EmailHandler : IHandler
+{
+    public void Handle(string msg)
     {
-        List<string> eventsList = new List<string> { "login", "click", "purchase", "logout" };
-        EventProcessor processor = new EventProcessor();
-        string logFilePath = "eventlog.txt";
-
-        // Process all events concurrently
-        Task<string>[] processingTasks = new Task<string>[eventsList.Count];
-        for (int i = 0; i < eventsList.Count; i++)
-        {
-            processingTasks[i] = processor.ProcessEventAsync(eventsList[i]);
-        }
-
-        string[] results = await Task.WhenAll(processingTasks);
-
-        // Log each processed result sequentially (no race conditions due to lock)
-        foreach (string result in results)
-        {
-            processor.LogResult(logFilePath, result);
-        }
-
-        Console.WriteLine("All events processed.");
+        // TODO: email logic
     }
 }
 
-
-
-2.
-
-
- using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Threading;
-
-public delegate double PricingRule(double amount);
-
-class Order
+public class PushNotificationHandler : IHandler
 {
-    public int Id { get; set; }
-    public double Amount { get; set; }
+    public void Handle(string msg)
+    {
+        // TODO: push logic
+    }
 }
 
-class OrderEngine
+public static class HandlerFactory
 {
-    public ConcurrentBag<double> FinalAmounts = new ConcurrentBag<double>();
-    public int ProcessedCount = 0;
-
-    public double ApplyPricingRule(Order order, PricingRule rule)
+    public static IHandler Create()
     {
-        // Apply the delegate pricing rule to the order amount safely
-        return rule(order.Amount);
-    }
-
-    public void ProcessOrders(IEnumerable<Order> orders, PricingRule rule)
-    {
-        Parallel.ForEach(orders, order =>
-        {
-            double finalAmount = ApplyPricingRule(order, rule);
-            FinalAmounts.Add(finalAmount);
-            Interlocked.Increment(ref ProcessedCount);
-        });
+        string type = /* TODO: Access from Singleton */;
+        
+        // TODO: return instance based on type
     }
 }
 
@@ -102,34 +162,86 @@ class Program
 {
     static void Main()
     {
-        List<Order> orders = new List<Order>
-        {
-            new Order { Id = 1, Amount = 1000 },
-            new Order { Id = 2, Amount = 1500 },
-            new Order { Id = 3, Amount = 2000 }
-        };
+        var handler = HandlerFactory.Create();
+        handler.Handle("Welcome!");
+    }
+}
+```
 
-        PricingRule discountRule = amt => amt * 0.85; // 15% discount
+---
 
-        OrderEngine engine = new OrderEngine();
+**CASE STUDY 2 — Repository + Dependency Injection**
 
-        // Run processing
-        engine.ProcessOrders(orders, discountRule);
+Build a customer management service using DI.
+Repository must be registered in DI and injected into the service.
 
-        // Print total processed count
-        Console.WriteLine($"Total processed orders: {engine.ProcessedCount}");
+Requirements:
 
-        // Print all final amounts
-        Console.WriteLine("Final amounts:");
-        foreach (var amount in engine.FinalAmounts)
-        {
-            Console.WriteLine(amount);
-        }
+* Implement Customer entity
+* Implement `ICustomerRepository` and `InMemoryCustomerRepository`
+* Register in DI
+* Complete the missing sections
+* Use repository inside `CustomerService`
 
-        // Print sum of all final amounts using LINQ
-        double sum = engine.FinalAmounts.Sum();
-        Console.WriteLine($"Sum of final amounts: {sum}");
 
-        Console.WriteLine("Order processing complete.");
+```csharp
+public class Customer
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+}
+
+public interface ICustomerRepository
+{
+    void Add(Customer c);
+    Customer Get(int id);
+}
+
+public class InMemoryCustomerRepository : ICustomerRepository
+{
+    private readonly List<Customer> _db = new();
+
+    public void Add(Customer c)
+    {
+        // TODO
+    }
+
+    public Customer Get(int id)
+    {
+        // TODO
+        return null;
+    }
+}
+
+public class CustomerService
+{
+    private readonly ICustomerRepository _repo;
+
+    public CustomerService(/* TODO: inject */)
+    {
+        // TODO
+    }
+
+    public void PrintCustomer(int id)
+    {
+        var customer = /* TODO */
+        Console.WriteLine(/* TODO */);
+    }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        var builder = Host.CreateDefaultBuilder(args)
+            .ConfigureServices(services =>
+            {
+                // TODO: register repository + CustomerService
+            });
+
+        var app = builder.Build();
+
+        var service = /* TODO: resolve */;
+        service.PrintCustomer(1);
     }
 }
