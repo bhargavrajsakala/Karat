@@ -29,6 +29,17 @@ Requirements:
 * Ensure lazy initialization
 * No external locking object allowed
 
+
+public class Logger
+{
+   
+    private static readonly Lazy<Logger> _instance = new Lazy<Logger>(() => new Logger());
+
+    public static Logger Instance => _instance.Value;
+
+    private Logger() { }
+}
+
 ---
 
 **2. Performance Issue – Inefficient Factory Lookup**
@@ -55,6 +66,47 @@ Requirements:
 * Avoid repeated condition checks
 * Use a pattern-friendly approach (dictionary, reflection, registration list, etc.)
 
+    public interface IPayment
+{
+    void Pay();
+}
+
+public class CardPayment : IPayment
+{
+    public void Pay() {  }
+}
+
+public class UpiPayment : IPayment
+{
+    public void Pay() {  }
+}
+
+public class NetBanking : IPayment
+{
+    public void Pay() {  }
+}
+
+public class PaymentFactory
+{
+    private Dictionary<string, IPayment> _payments = new Dictionary<string, IPayment>();
+
+    public PaymentFactory()
+    {
+        _payments.Add("Card", new CardPayment());
+        _payments.Add("UPI", new UpiPayment());
+        _payments.Add("NetBanking", new NetBanking());
+    }
+
+    public IPayment GetPayment(string type)
+    {
+        if (_payments.ContainsKey(type))
+            return _payments[type];
+
+        return null;
+    }
+}
+
+
 ---
 
 **3. Write a Small Program – Simple Repository Filter**
@@ -67,6 +119,48 @@ Requirements:
 * Implements `GetProductsByCategory(string category)`
 * Returns only matching products
 * No database required; use in-memory list
+
+using System;
+using System.Collections.Generic;
+
+class Product
+{
+    public string Name;
+    public string Category;
+}
+
+class Repository
+{
+    List<Product> data = new List<Product>
+    {
+        new Product { Name = "Car", Category = "Toy" },
+        new Product { Name = "Block", Category = "Toy" },
+        new Product { Name = "Apple", Category = "Food" }
+    };
+
+    public List<Product> GetByCategory(string category)
+    {
+        List<Product> result = new List<Product>();
+        foreach (var p in data)
+        {
+            if (p.Category == category)
+                result.Add(p);
+        }
+        return result;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        var repo = new Repository();
+        var toys = repo.GetByCategory("Toy");
+        foreach (var toy in toys)
+            Console.WriteLine(toy.Name);
+    }
+}
+
 
 ---
 
@@ -93,6 +187,10 @@ Requirements:
 * Identify why the test fails
 * Fix the DI registration or implementation
 * Modify only dependency or registration, not assert
+
+
+
+------------------
 
 
 **CASE STUDY 1 — Singleton + Factory Integration**
