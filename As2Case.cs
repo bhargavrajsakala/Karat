@@ -1,152 +1,71 @@
-**1. Fix the Code – Singleton Not Working**
+CASE STUDY 1— Strategy Pattern for Payment Processing
 
-The following Singleton implementation creates multiple instances sometimes during multi-threaded execution.
-
-**Task:** Fix the code to ensure proper *lazy* and *thread-safe* Singleton behavior.
-
-```csharp
-public class Logger
-{
-    private static Logger _instance;
-
-    public static Logger Instance
-    {
-        get
-        {
-            if (_instance == null)
-                _instance = new Logger(); // NOT thread safe
-            return _instance;
-        }
-    }
-
-    private Logger() { }
-}
-```
-
-Requirements:
-
-* Fix thread safety
-* Ensure lazy initialization
-* No external locking object allowed
-
-
-public class Logger
-{
-   
-    private static readonly Lazy<Logger> _instance = new Lazy<Logger>(() => new Logger());
-
-    public static Logger Instance => _instance.Value;
-
-    private Logger() { }
-}
+**Theme:** E-commerce checkout system
+**Pattern:** Strategy Pattern
+**Goal:** Dynamically switch payment logic at runtime.
 
 ---
 
-**2. Performance Issue – Inefficient Factory Lookup**
+*Requirement*
 
-A poorly implemented Factory method uses repeated `if/else` checks for every request.
+Implement a payment processing module where:
+
+* Payment logic should be changeable at runtime via Strategy Pattern.
+* Strategies include:
+
+  * `CardPaymentStrategy`
+  * `UPIPaymentStrategy`
+  * `WalletPaymentStrategy`
+* `PaymentContext` will select and execute the strategy.
+* Complete the missing parts in the code below.
+
 
 ```csharp
-public class PaymentFactory
+public interface IPaymentStrategy
 {
-    public IPayment GetPayment(string type)
+    bool Pay(double amount);
+}
+
+public class CardPaymentStrategy : IPaymentStrategy
+{
+    public bool Pay(double amount)
     {
-        if (type == "Card") return new CardPayment();
-        else if (type == "UPI") return new UpiPayment();
-        else if (type == "NetBanking") return new NetBanking();
-        else if (type == "Card") return new CardPayment(); // repeated
-        else return null;
-    }
-}
-```
-
-Requirements:
-
-* Improve performance
-* Avoid repeated condition checks
-* Use a pattern-friendly approach (dictionary, reflection, registration list, etc.)
-
-    public interface IPayment
-{
-    void Pay();
-}
-
-public class CardPayment : IPayment
-{
-    public void Pay() {  }
-}
-
-public class UpiPayment : IPayment
-{
-    public void Pay() {  }
-}
-
-public class NetBanking : IPayment
-{
-    public void Pay() {  }
-}
-
-public class PaymentFactory
-{
-    private Dictionary<string, IPayment> _payments = new Dictionary<string, IPayment>();
-
-    public PaymentFactory()
-    {
-        _payments.Add("Card", new CardPayment());
-        _payments.Add("UPI", new UpiPayment());
-        _payments.Add("NetBanking", new NetBanking());
-    }
-
-    public IPayment GetPayment(string type)
-    {
-        if (_payments.ContainsKey(type))
-            return _payments[type];
-
-        return null;
+        // TODO: Implement card payment logic
+        return false;
     }
 }
 
-
----
-
-**3. Write a Small Program – Simple Repository Filter**
-
-Write a small C# program that:
-
-Requirements:
-
-* Uses a `ProductRepository`
-* Implements `GetProductsByCategory(string category)`
-* Returns only matching products
-* No database required; use in-memory list
-
-using System;
-using System.Collections.Generic;
-
-class Product
+public class UpiPaymentStrategy : IPaymentStrategy
 {
-    public string Name;
-    public string Category;
+    public bool Pay(double amount)
+    {
+        // TODO: Implement UPI payment logic
+        return false;
+    }
 }
 
-class Repository
+public class WalletPaymentStrategy : IPaymentStrategy
 {
-    List<Product> data = new List<Product>
+    public bool Pay(double amount)
     {
-        new Product { Name = "Car", Category = "Toy" },
-        new Product { Name = "Block", Category = "Toy" },
-        new Product { Name = "Apple", Category = "Food" }
-    };
+        // TODO: Implement wallet deduction logic
+        return false;
+    }
+}
 
-    public List<Product> GetByCategory(string category)
+public class PaymentContext
+{
+    private IPaymentStrategy _strategy;
+
+    public void SetStrategy(IPaymentStrategy strategy)
     {
-        List<Product> result = new List<Product>();
-        foreach (var p in data)
-        {
-            if (p.Category == category)
-                result.Add(p);
-        }
-        return result;
+        // TODO: assign
+    }
+
+    public bool Execute(double amount)
+    {
+        // TODO: call strategy
+        return false;
     }
 }
 
@@ -154,192 +73,12 @@ class Program
 {
     static void Main()
     {
-        var repo = new Repository();
-        var toys = repo.GetByCategory("Toy");
-        foreach (var toy in toys)
-            Console.WriteLine(toy.Name);
-    }
-}
+        PaymentContext ctx = new PaymentContext();
 
+        // TODO: Based on user input or config, set a strategy
 
----
+        bool result = ctx.Execute(500);
 
-**4. Fix the Failing Test Case – DI Misconfiguration**
-
-A unit test fails because the DI container does not provide the correct service.
-
-```csharp
-[Test]
-public void ShouldReturnDiscountedPrice()
-{
-    var services = new ServiceCollection();
-    services.AddSingleton<IPriceCalculator, PriceCalculator>();
-
-    var provider = services.BuildServiceProvider();
-    var svc = provider.GetService<IPriceCalculator>();
-
-    Assert.AreEqual(90, svc.Calculate(100)); // FAILS
-}
-```
-
-Requirements:
-
-* Identify why the test fails
-* Fix the DI registration or implementation
-* Modify only dependency or registration, not assert
-
-
-
-------------------
-
-
-**CASE STUDY 1 — Singleton + Factory Integration**
-
-A system should only load configuration once using Singleton and use that configuration inside a Factory to create the correct handler.
-
-Requirements:
-
-* Implement `AppConfig` Singleton
-* Implement `IHandler`, `EmailHandler`, `PushNotificationHandler`
-* Implement `HandlerFactory`
-* Complete the missing parts
-
-
-```csharp
-public sealed class AppConfig
-{
-    private static AppConfig _instance;
-    public string HandlerType { get; private set; }
-
-    private AppConfig()
-    {
-        // TODO: Hardcode HandlerType (e.g., "Email")
-    }
-
-    public static AppConfig Instance
-    {
-        get
-        {
-            // TODO: thread-safe instance
-        }
-    }
-}
-
-public interface IHandler
-{
-    void Handle(string msg);
-}
-
-public class EmailHandler : IHandler
-{
-    public void Handle(string msg)
-    {
-        // TODO: email logic
-    }
-}
-
-public class PushNotificationHandler : IHandler
-{
-    public void Handle(string msg)
-    {
-        // TODO: push logic
-    }
-}
-
-public static class HandlerFactory
-{
-    public static IHandler Create()
-    {
-        string type = /* TODO: Access from Singleton */;
-        
-        // TODO: return instance based on type
-    }
-}
-
-class Program
-{
-    static void Main()
-    {
-        var handler = HandlerFactory.Create();
-        handler.Handle("Welcome!");
-    }
-}
-```
-
----
-
-**CASE STUDY 2 — Repository + Dependency Injection**
-
-Build a customer management service using DI.
-Repository must be registered in DI and injected into the service.
-
-Requirements:
-
-* Implement Customer entity
-* Implement `ICustomerRepository` and `InMemoryCustomerRepository`
-* Register in DI
-* Complete the missing sections
-* Use repository inside `CustomerService`
-
-
-```csharp
-public class Customer
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-}
-
-public interface ICustomerRepository
-{
-    void Add(Customer c);
-    Customer Get(int id);
-}
-
-public class InMemoryCustomerRepository : ICustomerRepository
-{
-    private readonly List<Customer> _db = new();
-
-    public void Add(Customer c)
-    {
-        // TODO
-    }
-
-    public Customer Get(int id)
-    {
-        // TODO
-        return null;
-    }
-}
-
-public class CustomerService
-{
-    private readonly ICustomerRepository _repo;
-
-    public CustomerService(/* TODO: inject */)
-    {
-        // TODO
-    }
-
-    public void PrintCustomer(int id)
-    {
-        var customer = /* TODO */
-        Console.WriteLine(/* TODO */);
-    }
-}
-
-class Program
-{
-    static void Main(string[] args)
-    {
-        var builder = Host.CreateDefaultBuilder(args)
-            .ConfigureServices(services =>
-            {
-                // TODO: register repository + CustomerService
-            });
-
-        var app = builder.Build();
-
-        var service = /* TODO: resolve */;
-        service.PrintCustomer(1);
+        Console.WriteLine(result ? "Payment Success" : "Payment Failed");
     }
 }
