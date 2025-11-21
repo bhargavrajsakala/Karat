@@ -1,22 +1,12 @@
-using System; 
- using System.Collections.Generic; 
- using System.Linq; 
- using System.Text; 
- using System.Threading.Tasks; 
-namespace KarateAssignment 
- { 
-    class Department { public int Id; public string Name; } 
-    class Employee { public int Id; public int DepartmentId; public string Name; } 
-    var departments = GetDepartments();  // Assume 100 departments 
-     var employees = GetEmployees();      // Assume 10,000 employees 
-    // Group employees by DepartmentId only once 
-     var employeeLookup = employees.GroupBy(e => e.DepartmentId) 
-                                   .ToDictionary(g => g.Key, g => g.ToList()); 
- 
-     foreach (var dept in departments) 
-     { 
-         // Fetch employees for the department using the dictionary 
-         var emps = employeeLookup.ContainsKey(dept.Id) ? employeeLookup[dept.Id] : new List<Employee>(); 
-        Console.WriteLine($"{dept.Name}: {emps.Count} employees"); 
-     } 
- }
+1st case study:
+private appconfig() constructor prevents instatiating appconfig from outside the class.
+ public static AppConfig Instance : static property that returns singleton instnce,
+if null lock enters block, inside lock it checks again if it was null
+ * ncessary  to check because another thread might have created the instance while this thread waited.
+  if still null _instance = new Appconfig(); creats the single instance and finally returns _instance.(purpose to create only 1instance)
+   public static class HandlerFactory : factory that creats the crct Ihandler based on configuration.
+     AppConfig.Instance.HandlerType; : go to global Appconfig obj and get the value of the handlertype setting.
+    HandlerFactory.Create() : calls to get Ihandler instance
+      handler.Handle("Welcome!"); : which performs the action(send msg to console).
+
+      2nd case study:
