@@ -1,81 +1,214 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
+_stock = newStock; 
+means that the value of the parameter newStock passed to the SetStock method is being assigned to the private field _stock.
+Why this assignment is done:
+_stock is a private variable inside the Inventory class that holds the current stock quantity.
+newStock is the new value that someone wants to set for the stock.
+When SetStock is called with a new stock value, the assignment updates the internal _stock field to that new value.
+Calls the NotifyObservers method on the current object (an instance of Inventory).
+Passes a string message into that method. This string is created using string interpolation (the $"" syntax) which inserts the current value of _stock into the message. For example, if _stock is 5, the message becomes "Stock is low: 5 items left."
+Inside the NotifyObservers method, this message is sent to all attached observers by calling their Update methods.
+Observers call Attach on the subject to register themselves.
+The subject adds them to the _observers list.
+When the subject’s state (e.g., stock count) changes and meets a condition, it calls NotifyObservers.
+NotifyObservers loops through the _observers list and calls Update on each observer.
+This triggers each observer’s individual response to the update.
+    
+    
+CASE STUDY 2— Observer Pattern for Inventory Notifications
 
-public class Customer
+**Theme:** Stock Management
+**Pattern:** Observer (Publisher–Subscriber)
+**Goal:** Notify different departments when inventory level changes.
+
+---
+
+*Requirement*
+
+Implement an inventory tracking system where:
+
+* `Inventory` acts as the **Subject**.
+* Observers include:
+
+  * `WarehouseNotifier`
+  * `BillingNotifier`
+  * `MobileAppNotifier`
+* When stock drops below threshold, all observers must be notified.
+* Complete the missing parts in the code below.
+
+---
+
+
+```csharp
+public interface IObserver
 {
-    public int Id { get; set; }
-    public string Name { get; set; }
+    void Update(string message);
 }
 
-public interface ICustomerRepository
+public interface ISubject
 {
-    void Add(Customer c);
-    Customer Get(int id);
+    void Attach(IObserver observer);
+    void Detach(IObserver observer);
+    void NotifyObservers(string msg);
 }
 
-public class InMemoryCustomerRepository : ICustomerRepository
+public class Inventory : ISubject
 {
-    private readonly List<Customer> _db = new List<Customer>();
+    private List<IObserver> _observers = new();
+    private int _stock;
 
-    public void Add(Customer c)
+    public void SetStock(int newStock)
     {
-        _db.Add(c);
-    }
-
-    public Customer Get(int id)
-    {
-        foreach (Customer c in _db)
+        _stock = newStock;
+        
+        if (_stock < 10)
         {
-            if (c.Id == id)
-            {
-                return c;
-            }
+            // TODO: notify observers
         }
-        return null;
+    }
+
+    public void Attach(IObserver observer)
+    {
+        // TODO
+    }
+
+    public void Detach(IObserver observer)
+    {
+        // TODO
+    }
+
+    public void NotifyObservers(string msg)
+    {
+        // TODO
     }
 }
 
-public class CustomerService
+public class WarehouseNotifier : IObserver
 {
-    private readonly ICustomerRepository _repo;
-
-    public CustomerService(ICustomerRepository repo)
+    public void Update(string message)
     {
-        _repo = repo;
+        // TODO: show message
     }
+}
 
-    public void PrintCustomer(int id)
+public class BillingNotifier : IObserver
+{
+    public void Update(string message)
     {
-        var customer = _repo.Get(id);
-        if (customer == null)
-            Console.WriteLine($"Customer {id} not found!");
-        else
-            Console.WriteLine($"Customer: {customer.Id} - {customer.Name}");
+        // TODO
+    }
+}
+
+public class MobileAppNotifier : IObserver
+{
+    public void Update(string message)
+    {
+        // TODO
     }
 }
 
 class Program
 {
-    static void Main(string[] args)
+    static void Main()
     {
-        var builder = Host.CreateDefaultBuilder(args)
-            .ConfigureServices(services =>
-            {
-                services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>();
-                services.AddTransient<CustomerService>();
-            });
+        var inventory = new Inventory();
 
-        var app = builder.Build();
+        // TODO: attach observers
 
-        var repo = app.Services.GetRequiredService<ICustomerRepository>();
-        repo.Add(new Customer { Id = 1, Name = "Alice" });
-        repo.Add(new Customer { Id = 2, Name = "Bob" });
-
-        var service = app.Services.GetRequiredService<CustomerService>();
-        service.PrintCustomer(1);
-        service.PrintCustomer(2);
-        service.PrintCustomer(99);
+        inventory.SetStock(5); // triggers notification
     }
 }
+```
+
+code :
+
+using System;
+using System.Collections.Generic;
+
+public interface IObserver
+{
+    void Update(string message);
+}
+
+public interface ISubject
+{
+    void Attach(IObserver observer);
+    void Detach(IObserver observer);
+    void NotifyObservers(string msg);
+}
+
+public class Inventory : ISubject
+{
+    private List<IObserver> _observers = new();
+    private int _stock;
+
+    public void SetStock(int newStock)
+    {
+        _stock = newStock;
+
+        if (_stock < 10)
+        {
+            NotifyObservers($"Stock is low: {_stock} items left.");
+        }
+    }
+
+    public void Attach(IObserver observer)
+    {
+        if (!_observers.Contains(observer))
+            _observers.Add(observer);
+    }
+
+    public void Detach(IObserver observer)
+    {
+        if (_observers.Contains(observer))
+            _observers.Remove(observer);
+    }
+
+    public void NotifyObservers(string msg)
+    {
+        foreach (var observer in _observers)
+        {
+            observer.Update(msg);
+        }
+    }
+}
+
+public class WarehouseNotifier : IObserver
+{
+    public void Update(string message)
+    {
+        Console.WriteLine($"Warehouse Notification: {message}");
+    }
+}
+
+public class BillingNotifier : IObserver
+{
+    public void Update(string message)
+    {
+        Console.WriteLine($"Billing Notification: {message}");
+    }
+}
+
+public class MobileAppNotifier : IObserver
+{
+    public void Update(string message)
+    {
+        Console.WriteLine($"Mobile App Notification: {message}");
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        var inventory = new Inventory();
+
+        // Attach observers
+        inventory.Attach(new WarehouseNotifier());
+        inventory.Attach(new BillingNotifier());
+        inventory.Attach(new MobileAppNotifier());
+
+        // Set stock to trigger notification
+        inventory.SetStock(5);
+    }
+}
+
