@@ -1,158 +1,174 @@
-CASE STUDY 1 — Multi-Threaded Order Processing (Thread Safety + LINQ + File I/O)
-
-### **Scenario**
-
-You are working for an e-commerce company. Their system receives orders from multiple marketplace partners (Amazon, Flipkart, Meesho, etc.) in the form of text files. Each order is logged as one line:
-
-```
-<timestamp> <orderId> <customerId> <amount> <status>
-```
-
-Example:
-
-```
-20250121T10:22:11 ORD001 CUST09 1200.50 CREATED
-20250121T10:22:12 ORD002 CUST01 899.99 CREATED
-20250121T10:22:15 ORD001 CUST09 1200.50 DISPATCHED
-20250121T10:22:20 ORD002 CUST01 899.99 CANCELLED
-20250121T10:22:29 ORD003 CUST15 499.00 CREATED
-```
-
-A **complete order lifecycle** consists of:
-
-* A **CREATED**
-* Followed later by a **DISPATCHED** or **CANCELLED**
-
-Multiple partner systems write logs concurrently. Your team built a service to process files in parallel, but you found **race conditions** due to improper shared-collection usage.
-
----
-
-## **2-1) Fix the thread-safety issue in the following partially implemented class:**
+**CASE STUDY 1 — Jagged Array (School Timetable Analysis)**
 
 ```csharp
-public class OrderProcessor
-{
-    private List<OrderEntry> entries = new List<OrderEntry>(); // THREAD-UNSAFE
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 
-    public void LoadOrdersParallel(List<string> filePaths)
+/*
+We are writing software to analyze class attendance across multiple schools.
+
+Each school has a different number of classes.
+Each class has a different number of students.
+
+Because of this variability, attendance data is stored in a JAGGED ARRAY.
+
+Example:
+School 0 → 3 classes
+School 1 → 2 classes
+School 2 → 4 classes
+
+attendance[school][class] = number of students present
+*/
+
+public class AttendanceAnalyzer
+{
+    /*
+    A school is considered "FULLY ATTENDED" if:
+    - Every class in that school has attendance >= minimumStrength
+
+    1-1) Write a function CountFullyAttendedSchools()
+         which returns how many schools satisfy the condition.
+    */
+
+    public static int CountFullyAttendedSchools(int[][] attendance, int minimumStrength)
     {
-        Parallel.ForEach(filePaths, file =>
+        int fullyAttended = 0;
+
+        foreach (var school in attendance)
         {
-            foreach (var line in File.ReadAllLines(file))
+            bool isValid = true;
+
+            foreach (var classStrength in school)
             {
-                var order = new OrderEntry(line);
-                entries.Add(order); // PROBLEM: Not thread-safe
+                if (classStrength < minimumStrength)
+                {
+                    isValid = false;
+                    break;
+                }
             }
-        });
-    }
 
-    public int CountCompleteOrders()
+            if (isValid)
+                fullyAttended++;
+        }
+
+        return fullyAttended;
+    }
+}
+
+public class Solution
+{
+    public static void Main()
     {
-        // A complete order = has CREATED and (DISPATCHED or CANCELLED)
-        return entries
-            .GroupBy(o => o.OrderId)
-            .Count(g => g.Any(e => e.Status == "CREATED") &&
-                        g.Any(e => e.Status == "DISPATCHED" || e.Status == "CANCELLED"));
+        int[][] attendance =
+        {
+            new int[] { 30, 32, 31 },   // School 0
+            new int[] { 28, 15 },       // School 1
+            new int[] { 40, 41, 39, 42 } // School 2
+        };
+
+        Debug.Assert(
+            AttendanceAnalyzer.CountFullyAttendedSchools(attendance, 30) == 2
+        );
+
+        Console.WriteLine("All tests passed.");
     }
 }
 ```
 
-**Task:** Rewrite `LoadOrdersParallel()` to eliminate thread-safety issues using either:
-
-* `ConcurrentBag<T>`
-* `lock` block
-* `Partitioner`
-* or any other thread-safe structure.
-
-Also provide the corrected full solution.
-
 ---
 
-## **2-2) Write unit tests for CountCompleteOrders() using MSTest or NUnit.**
-
----
-
-<br>
-
----
-CASE STUDY 2 — Movie Streaming Analytics (Async I/O + LINQ + Classes + Validation)
-
-### **Scenario**
-
-A movie streaming platform logs user activity events in a text file where each line is:
-
-```
-<Timestamp> <UserId> <MovieId> <Action>
-```
-
-Actions:
-
-* `STARTED`
-* `PAUSED`
-* `RESUMED`
-* `COMPLETED`
-
-A **valid movie watch session** is defined as:
-
-* STARTED
-* Zero or more PAUSED / RESUMED
-* COMPLETED
-
-Example:
-
-```
-20250121T14:00:01 U01 M10 STARTED
-20250121T14:10:15 U01 M10 COMPLETED
-20250121T15:00:01 U02 M11 STARTED
-20250121T15:30:01 U02 M11 PAUSED
-20250121T15:40:00 U02 M11 RESUMED
-20250121T16:00:00 U02 M11 COMPLETED
-```
-
----
-
-## **2-1) Implement the following method asynchronously:**
+**CASE STUDY 2 — Lists & Collections (Library Book Borrowing Logs)**
 
 ```csharp
-public class StreamLogService
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+
+/*
+We are writing software to analyze book borrowing logs in a library.
+
+Each log entry represents a user borrowing or returning a book.
+
+Log format:
+<timestamp> <userId> <bookId> <action>
+
+action can be:
+- BORROW
+- RETURN
+
+A "VALID BORROW SESSION" consists of:
+1) A BORROW entry
+2) Followed later by a RETURN entry for the same user and book
+
+You may assume:
+- Logs are in chronological order
+- No missing BORROW entries
+*/
+
+public class BorrowLog
 {
-    public async Task<List<UserSession>> LoadSessionsAsync(string filePath)
+    public string UserId { get; }
+    public string BookId { get; }
+    public string Action { get; }
+
+    public BorrowLog(string logLine)
     {
-        // TODO: Read file asynchronously, parse log lines,
-        // group by (UserId + MovieId), determine valid sessions
-        // and return List<UserSession>
+        var parts = logLine.Split(' ');
+        UserId = parts[1];
+        BookId = parts[2];
+        Action = parts[3];
+    }
+}
+
+public class LibraryLogFile : List<BorrowLog>
+{
+    /*
+    2-1) Write a function CountValidBorrowSessions()
+         that returns how many valid borrow sessions exist in the log.
+    */
+
+    public int CountValidBorrowSessions()
+    {
+        int count = 0;
+        HashSet<string> activeBorrows = new HashSet<string>();
+
+        foreach (var log in this)
+        {
+            string key = $"{log.UserId}|{log.BookId}";
+
+            if (log.Action == "BORROW")
+            {
+                activeBorrows.Add(key);
+            }
+            else if (log.Action == "RETURN" && activeBorrows.Contains(key))
+            {
+                count++;
+                activeBorrows.Remove(key);
+            }
+        }
+
+        return count;
+    }
+}
+
+public class Solution
+{
+    public static void Main()
+    {
+        var logs = new LibraryLogFile
+        {
+            new BorrowLog("100 U1 B10 BORROW"),
+            new BorrowLog("200 U2 B20 BORROW"),
+            new BorrowLog("300 U1 B10 RETURN"),
+            new BorrowLog("400 U2 B20 RETURN"),
+            new BorrowLog("500 U3 B30 BORROW"),
+            new BorrowLog("600 U3 B30 RETURN")
+        };
+
+        Debug.Assert(logs.CountValidBorrowSessions() == 3);
+
+        Console.WriteLine("All tests passed.");
     }
 }
 ```
-
-### Requirements:
-
-✔ Use `async/await` with `File.ReadAllLinesAsync()`
-✔ Use grouping with LINQ
-✔ Validate session sequence in correct order (STARTED → ... → COMPLETED)
-✔ Ignore corrupted or invalid sequences
-✔ Return list of UserSession objects containing:
-
-```csharp
-public class UserSession
-{
-    public string UserId { get; set; }
-    public string MovieId { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-}
-```
-
----
-
-## **2-2) Identify performance issues and propose improvements for scalability if the file size reaches 5–10GB.**
-
-Your answer should mention:
-
-* Streaming through file with `StreamReader.ReadLineAsync`
-* Avoiding loading entire file into memory
-* Using async I/O for throughput
-* Using `ValueTask` where applicable
-* Using `IAsyncEnumerable<string>` for pipeline processing
-
----
