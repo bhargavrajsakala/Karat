@@ -1,240 +1,185 @@
-**CASE STUDY 1 — Jagged Array (School Timetable Analysis)**
-
-```csharp
+CASE STUDY 1
+ 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-
+using System.IO;
+using System.Linq;
+ 
 /*
-We are writing software to analyze class attendance across multiple schools.
-
-Each school has a different number of classes.
-Each class has a different number of students.
-
-Because of this variability, attendance data is stored in a JAGGED ARRAY.
-
+We are writing software to analyze trade execution logs from a stock exchange.
+ 
+Each trade execution is recorded as a log entry in the following format:
+ 
+<timestamp> <tradeId> <symbol> <price> <quantity>
+ 
 Example:
-School 0 → 3 classes
-School 1 → 2 classes
-School 2 → 4 classes
-
-attendance[school][class] = number of students present
+90120.115 TR001 INFY 1520.50 100
+90118.912 TR002 TCS 3450.75 50
+90121.500 TR003 INFY 1518.25 200
+ 
+The log file is NOT guaranteed to be sorted by timestamp.
+ 
+A "HIGH VALUE TRADE" is defined as:
+price * quantity >= 100000
+ 
+We want to analyze high value trades in the exact order they occurred.
+ 
+1-1) Write a function GetHighValueTrades()
+     that returns a list of TradeIds of all HIGH VALUE TRADES,
+     sorted by timestamp (earliest first).
 */
-
-public class AttendanceAnalyzer
+ 
+public class TradeLogEntry
 {
-    /*
-    A school is considered "FULLY ATTENDED" if:
-    - Every class in that school has attendance >= minimumStrength
-
-    1-1) Write a function CountFullyAttendedSchools()
-         which returns how many schools satisfy the condition.
-    */
-public class Solution
-{
-    public static void Main()
+    public double Timestamp { get; private set; }
+    public string TradeId { get; private set; }
+    public string Symbol { get; private set; }
+    public decimal Price { get; private set; }
+    public int Quantity { get; private set; }
+ 
+    public TradeLogEntry(string logLine)
     {
-        int[][] attendance =
-        {
-            new int[] { 30, 32, 31 },   // School 0
-            new int[] { 28, 15 },       // School 1
-            new int[] { 40, 41, 39, 42 } // School 2
-        };
-
-        Debug.Assert(
-            AttendanceAnalyzer.CountFullyAttendedSchools(attendance, 30) == 2
-        );
-
-        Console.WriteLine("All tests passed.");
+        var tokens = logLine.Split(" ");
+        Timestamp = double.Parse(tokens[0]);
+        TradeId = tokens[1];
+        Symbol = tokens[2];
+        Price = decimal.Parse(tokens[3]);
+        Quantity = int.Parse(tokens[4]);
     }
 }
-```
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-
-public class AttendanceAnalyzer
-{ 
-    public static int CountFullyAttendedSchools(int[][] attendance, int minimumStrength)
+ 
+public class TradeLogFile : List<TradeLogEntry>
+{
+    public TradeLogFile(StreamReader reader)
     {
-        int fullyAttended = 0;
-
-        foreach (var school in attendance)
+        string? line;
+        while ((line = reader.ReadLine()) != null)
         {
-            bool isValid = true;
-
-            foreach (var classStrength in school)
-            {
-                if (classStrength < minimumStrength)
-                {
-                    isValid = false;
-                    break;
-                }
-            }
-
-            if (isValid)
-                fullyAttended++;
+            Add(new TradeLogEntry(line.Trim()));
         }
-
-        return fullyAttended;
+    }
+ 
+    /*
+    1-2) Implement this function
+    */
+    public List<string> GetHighValueTrades()
+    {
+        // TODO: Sorting + filtering logic
+        return new List<string>();
     }
 }
-
+ 
 public class Solution
 {
     public static void Main()
     {
-        int[][] attendance =
-        {
-            new int[] { 30, 32, 31 },   // School 0
-            new int[] { 28, 15 },       // School 1
-            new int[] { 40, 41, 39, 42 } // School 2
-        };
-
-        Debug.Assert(
-            AttendanceAnalyzer.CountFullyAttendedSchools(attendance, 30) == 2
-        );
-
+        var log = new TradeLogFile(new StreamReader(new MemoryStream(
+            System.Text.Encoding.UTF8.GetBytes(
+@"90120.115 TR001 INFY 1520.50 100
+90118.912 TR002 TCS 3450.75 50
+90121.500 TR003 INFY 1518.25 200"))));
+ 
+        var result = log.GetHighValueTrades();
+ 
+        Debug.Assert(result.Count == 2);
+        Debug.Assert(result[0] == "TR002");
+        Debug.Assert(result[1] == "TR003");
+ 
         Console.WriteLine("All tests passed.");
     }
 }
-
-
-
-
----
-
-**CASE STUDY 2 — Lists & Collections (Library Book Borrowing Logs)**
-
-```csharp
+ 
+CASE STUDY 2
+ 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-
+using System.IO;
+ 
 /*
-We are writing software to analyze book borrowing logs in a library.
-
-Each log entry represents a user borrowing or returning a book.
-
-Log format:
-<timestamp> <userId> <bookId> <action>
-
-action can be:
-- BORROW
-- RETURN
-
-A "VALID BORROW SESSION" consists of:
-1) A BORROW entry
-2) Followed later by a RETURN entry for the same user and book
-
-You may assume:
-- Logs are in chronological order
-- No missing BORROW entries
+We are writing software to verify ticket scans in a railway station.
+ 
+Each scan log entry has the format:
+ 
+<timestamp> <ticketNumber> <gateNumber>
+ 
+Example:
+100.125 TK100 G1
+101.330 TK101 G2
+102.410 TK102 G3
+103.500 TK103 G1
+ 
+The scan log file is GUARANTEED to be sorted by timestamp.
+ 
+Given a ticket number, we want to quickly determine
+whether the ticket was scanned at least once.
+ 
+Because the file can contain millions of entries,
+linear search is not acceptable.
+ 
+1-1) Write a function TicketScanned(string ticketNumber)
+     that returns true if the ticket exists in the log,
+     otherwise false.
+ 
+Important:
+- You MUST use binary search
+- You may assume ticket numbers are unique
 */
-
-public class BorrowLog
+ 
+public class TicketScanLogEntry
 {
-    public string UserId { get; }
-    public string BookId { get; }
-    public string Action { get; }
-
-    public BorrowLog(string logLine)
+    public double Timestamp { get; }
+    public string TicketNumber { get; }
+    public string GateNumber { get; }
+ 
+    public TicketScanLogEntry(string line)
     {
-        var parts = logLine.Split(' ');
-        UserId = parts[1];
-        BookId = parts[2];
-        Action = parts[3];
+        var parts = line.Split(" ");
+        Timestamp = double.Parse(parts[0]);
+        TicketNumber = parts[1];
+        GateNumber = parts[2];
     }
 }
-
-public class LibraryLogFile : List<BorrowLog>
+ 
+public class TicketScanLogFile : List<TicketScanLogEntry>
 {
-    /*
-    2-1) Write a function CountValidBorrowSessions()
-         that returns how many valid borrow sessions exist in the log.
-    */
-public class Solution
-{
-    public static void Main()
+    public TicketScanLogFile(StreamReader reader)
     {
-        var logs = new LibraryLogFile
+        string? line;
+        while ((line = reader.ReadLine()) != null)
         {
-            new BorrowLog("100 U1 B10 BORROW"),
-            new BorrowLog("200 U2 B20 BORROW"),
-            new BorrowLog("300 U1 B10 RETURN"),
-            new BorrowLog("400 U2 B20 RETURN"),
-            new BorrowLog("500 U3 B30 BORROW"),
-            new BorrowLog("600 U3 B30 RETURN")
-        };
-
-        Debug.Assert(logs.CountValidBorrowSessions() == 3);
-
-        Console.WriteLine("All tests passed.");
-    }
-}
-```
-
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-
-public class BorrowLog
-{
-    public string UserId { get; }
-    public string BookId { get; }
-    public string Action { get; }
-
-    public BorrowLog(string logLine)
-    {
-        var parts = logLine.Split(' ');
-        UserId = parts[1];
-        BookId = parts[2];
-        Action = parts[3];
-    }
-}
-
-public class LibraryLogFile : List<BorrowLog>
-{
-    public int CountValidBorrowSessions()
-    {
-        int count = 0;
-        HashSet<string> activeBorrows = new HashSet<string>();
-
-        foreach (var log in this)
-        {
-            string key = $"{log.UserId}|{log.BookId}";
-
-            if (log.Action == "BORROW")
-            {
-                activeBorrows.Add(key);
-            }
-            else if (log.Action == "RETURN" && activeBorrows.Contains(key))
-            {
-                count++;
-                activeBorrows.Remove(key);
-            }
+            Add(new TicketScanLogEntry(line.Trim()));
         }
-
-        return count;
+    }
+ 
+    /*
+    2-1) Implement this function using BINARY SEARCH
+    */
+    public bool TicketScanned(string ticketNumber)
+    {
+        // TODO: Binary search implementation
+        return false;
     }
 }
-
+ 
 public class Solution
 {
     public static void Main()
     {
-        var logs = new LibraryLogFile
-        {
-            new BorrowLog("100 U1 B10 BORROW"),
-            new BorrowLog("200 U2 B20 BORROW"),
-            new BorrowLog("300 U1 B10 RETURN"),
-            new BorrowLog("400 U2 B20 RETURN"),
-            new BorrowLog("500 U3 B30 BORROW"),
-            new BorrowLog("600 U3 B30 RETURN")
-        };
-
-        Debug.Assert(logs.CountValidBorrowSessions() == 3);
-
+        var log = new TicketScanLogFile(new StreamReader(new MemoryStream(
+            System.Text.Encoding.UTF8.GetBytes(
+@"100.125 TK100 G1
+101.330 TK101 G2
+102.410 TK102 G3
+103.500 TK103 G1"))));
+ 
+        Debug.Assert(log.TicketScanned("TK102") == true);
+        Debug.Assert(log.TicketScanned("TK999") == false);
+ 
         Console.WriteLine("All tests passed.");
     }
 }
+
+
+
