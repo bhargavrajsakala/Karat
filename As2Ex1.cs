@@ -1,191 +1,198 @@
-1.
-  
-  return amount > 0 : It means the payment will only succeed if the payment amount is greater than zero
- _strategy: This is a private field declared inside the class, used to hold a reference to an object implementing the IPaymentStrategy interface.
-strategy: This is the parameter passed into the SetStrategy method. It represents a specific payment strategy instance (like CardPaymentStrategy, UpiPaymentStrategy, or WalletPaymentStrategy).
-Assignment: The statement _strategy = strategy; copies the reference of the strategy object passed in into the _strategy field. It means the class now "remembers" the strategy to use.
-Effect: Later when the PaymentContext calls _strategy.Pay(amount), it calls the Pay method of the specific strategy instance that was assigned here, dynamically changing the payment behavior.
- string? choice = Console.ReadLine() : So, string? choice means the variable choice may not have any typed text if the input is empty or canceled.
-                                       In simple terms, the ? means the variable is allowed to be empty (null) or contain a string.   
-break stops the switch to prevent running unintended code.
+Hi All,
 
-  
+Below are the case study questions for practice, try to solve those and send answers back in email.
 
-CASE STUDY 1— Strategy Pattern for Payment Processing
-
-**Theme:** E-commerce checkout system
-**Pattern:** Strategy Pattern
-**Goal:** Dynamically switch payment logic at runtime.
-
----
-
-*Requirement*
-
-Implement a payment processing module where:
-
-* Payment logic should be changeable at runtime via Strategy Pattern.
-* Strategies include:
-
-  * `CardPaymentStrategy`
-  * `UPIPaymentStrategy`
-  * `WalletPaymentStrategy`
-* `PaymentContext` will select and execute the strategy.
-* Complete the missing parts in the code below.
-
-
+**CASE STUDY 1 — Threading + Singleton**
+ 
+**Server Health Monitoring System**
+ 
 ```csharp
-public interface IPaymentStrategy
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
+ 
+/*
+We are writing software to monitor health check pings from multiple servers
+in a data center.
+ 
+Each server periodically sends a health ping which is logged in memory.
+ 
+Log format:
+<timestamp> <serverId> <status>
+ 
+status can be:
+- UP
+- DOWN
+ 
+The monitoring service runs in a multi-threaded environment where
+multiple threads record health pings at the same time.
+ 
+There must be ONLY ONE INSTANCE of HealthMonitor in the application
+because it represents a centralized monitoring system.
+ 
+A server is considered "STABLE" if:
+- It has at least one UP status
+- It never goes DOWN after its first UP
+ 
+1-1) Implement the HealthMonitor as a THREAD-SAFE SINGLETON
+1-2) Write a function CountStableServers()
+     that returns how many servers are stable
+*/
+ 
+public class HealthLogEntry
 {
-    bool Pay(double amount);
-}
-
-public class CardPaymentStrategy : IPaymentStrategy
-{
-    public bool Pay(double amount)
+    public double Timestamp { get; }
+    public string ServerId { get; }
+    public string Status { get; }
+ 
+    public HealthLogEntry(double timestamp, string serverId, string status)
     {
-        // TODO: Implement card payment logic
-        return false;
+        Timestamp = timestamp;
+        ServerId = serverId;
+        Status = status;
     }
 }
-
-public class UpiPaymentStrategy : IPaymentStrategy
+ 
+public class HealthMonitor
 {
-    public bool Pay(double amount)
+    // TODO:
+    // - Make this class a thread-safe singleton
+    // - Store logs in a thread-safe collection
+ 
+    public void AddLog(HealthLogEntry entry)
     {
-        // TODO: Implement UPI payment logic
-        return false;
+        // TODO: Thread-safe add
+    }
+ 
+    /*
+    1-3) Implement this function
+    */
+    public int CountStableServers()
+    {
+        // TODO
+        return 0;
     }
 }
-
-public class WalletPaymentStrategy : IPaymentStrategy
+ 
+public class Solution
 {
-    public bool Pay(double amount)
+    public static void Main()
     {
-        // TODO: Implement wallet deduction logic
-        return false;
+        HealthMonitor monitor = HealthMonitor.Instance;
+ 
+        Thread t1 = new Thread(() =>
+        {
+            monitor.AddLog(new HealthLogEntry(1.1, "S1", "UP"));
+            monitor.AddLog(new HealthLogEntry(2.1, "S1", "UP"));
+        });
+ 
+        Thread t2 = new Thread(() =>
+        {
+            monitor.AddLog(new HealthLogEntry(1.5, "S2", "UP"));
+            monitor.AddLog(new HealthLogEntry(2.5, "S2", "DOWN"));
+        });
+ 
+        t1.Start();
+        t2.Start();
+        t1.Join();
+        t2.Join();
+ 
+        Debug.Assert(monitor.CountStableServers() == 1);
+ 
+        Console.WriteLine("All tests passed.");
     }
 }
-
-public class PaymentContext
+```
+ 
+**CASE STUDY 2 — Async + Arrays**
+ 
+**Weather Sensor Data Processing System**
+ 
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
+ 
+/*
+We are writing software to process temperature data collected from
+multiple weather sensors.
+ 
+Each sensor reports a fixed number of readings per day.
+Data for each sensor is stored in an ARRAY.
+ 
+Log file format:
+<sensorId> <comma-separated temperature readings>
+ 
+Example:
+S1 30,31,32,33
+S2 25,26,27,28
+ 
+A sensor is considered "OVERHEATED" if:
+- ANY temperature reading exceeds 40 degrees
+ 
+The data file can be very large, so it must be read asynchronously.
+ 
+1-1) Write an async function LoadSensorDataAsync()
+     that reads the file asynchronously and returns sensor data
+1-2) Write a function CountOverheatedSensors()
+     that returns how many sensors are overheated
+*/
+ 
+public class SensorData
 {
-    private IPaymentStrategy _strategy;
-
-    public void SetStrategy(IPaymentStrategy strategy)
+    public string SensorId { get; }
+    public int[] Readings { get; }
+ 
+    public SensorData(string line)
     {
-        // TODO: assign
-    }
-
-    public bool Execute(double amount)
-    {
-        // TODO: call strategy
-        return false;
+        var parts = line.Split(" ");
+        SensorId = parts[0];
+        Readings = Array.ConvertAll(parts[1].Split(","), int.Parse);
     }
 }
-
-class Program
+ 
+public class SensorDataFile : List<SensorData>
 {
-    static void Main()
+    public static async Task<SensorDataFile> LoadSensorDataAsync(string filePath)
     {
-        PaymentContext ctx = new PaymentContext();
-
-        // TODO: Based on user input or config, set a strategy
-
-        bool result = ctx.Execute(500);
-
-        Console.WriteLine(result ? "Payment Success" : "Payment Failed");
+        // TODO: Async file read + parsing
+        return null;
+    }
+ 
+    /*
+    2-1) Implement this function
+    */
+    public int CountOverheatedSensors()
+    {
+        // TODO
+        return 0;
+    }
+}
+ 
+public class Solution
+{
+    public static async Task Main()
+    {
+        string path = "sensors.txt";
+        File.WriteAllLines(path, new[]
+        {
+            "S1 30,31,32,33",
+            "S2 25,26,27,28",
+            "S3 35,42,36,37"
+        });
+ 
+        var data = await SensorDataFile.LoadSensorDataAsync(path);
+ 
+        Debug.Assert(data.CountOverheatedSensors() == 1);
+ 
+        Console.WriteLine("All tests passed.");
     }
 }
 ```
 
----
 
-  
-code :
-
- public interface IPaymentStrategy
-{
-    bool Pay(double amount);
-}
-
-public class CardPaymentStrategy : IPaymentStrategy
-{
-    public bool Pay(double amount)
-    {
-        // Dummy card payment validation and processing
-        Console.WriteLine($"Processing Card payment for {amount}");
-        // Assume success if amount > 0
-        return amount > 0;
-    }
-}
-
-public class UpiPaymentStrategy : IPaymentStrategy
-{
-    public bool Pay(double amount)
-    {
-        // Dummy UPI payment validation and processing
-        Console.WriteLine($"Processing UPI payment for {amount}");
-        return amount > 0;
-    }
-}
-
-public class WalletPaymentStrategy : IPaymentStrategy
-{
-    public bool Pay(double amount)
-    {
-        // Dummy wallet balance check and deduction
-        Console.WriteLine($"Processing Wallet payment for {amount}");
-        return amount > 0;
-    }
-}
-public class PaymentContext
-{
-    private IPaymentStrategy _strategy;
-
-    public void SetStrategy(IPaymentStrategy strategy)
-    {
-        _strategy = strategy;
-    }
-
-    public bool Execute(double amount)
-    {
-        if (_strategy == null)
-        {
-            Console.WriteLine("No payment strategy selected.");
-            return false;
-        }
-
-        return _strategy.Pay(amount);
-    }
-}
-
-class Program
-{
-    static void Main()
-    {
-        PaymentContext ctx = new PaymentContext();
-
-        Console.WriteLine("Select payment method: 1-Card, 2-UPI, 3-Wallet");
-        string? choice = Console.ReadLine();
-
-        switch (choice)
-        {
-            case "1":
-                ctx.SetStrategy(new CardPaymentStrategy());
-                break;
-            case "2":
-                ctx.SetStrategy(new UpiPaymentStrategy());
-                break;
-            case "3":
-                ctx.SetStrategy(new WalletPaymentStrategy());
-                break;
-            default:
-                Console.WriteLine("Invalid choice.");
-                return;
-        }
-
-        bool result = ctx.Execute(500);
-
-        Console.WriteLine(result ? "Payment Success" : "Payment Failed");
-    }
-}
- 
+Thanks,
+Maniarasi
