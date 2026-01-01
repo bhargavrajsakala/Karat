@@ -89,6 +89,48 @@ public class Solution
         Console.WriteLine("All tests passed.");
     }
 }
+
+solution:
+public List<string> GetHighValueTrades()
+{
+    const decimal threshold = 100000;
+
+  
+    var tempTrades = new List<TradeLogEntry>();
+    for (int i = 0; i < Count; i++)
+    {
+        TradeLogEntry trade = this[i];
+        decimal value = trade.Price * (decimal)trade.Quantity;
+        if (value >= threshold)
+        {
+            tempTrades.Add(trade);
+        }
+    }
+
+    int n = tempTrades.Count;
+    for (int i = 0; i < n - 1; i++)
+    {
+        for (int j = 0; j < n - i - 1; j++)
+        {
+            if (tempTrades[j].Timestamp > tempTrades[j + 1].Timestamp)
+            {
+                
+                TradeLogEntry temp = tempTrades[j];
+                tempTrades[j] = tempTrades[j + 1];
+                tempTrades[j + 1] = temp;
+            }
+        }
+    }
+
+    var result = new List<string>();
+    for (int i = 0; i < tempTrades.Count; i++)
+    {
+        result.Add(tempTrades[i].TradeId);
+    }
+
+    return result;
+}
+
  
 CASE STUDY 2
  
@@ -180,6 +222,34 @@ public class Solution
         Console.WriteLine("All tests passed.");
     }
 }
+
+solution: 
+
+    public bool TicketScanned(string ticketNumber)
+    {
+        int left = 0;
+        int right = Count - 1;
+
+        while (left <= right)
+        {
+            int mid = left + (right - left) / 2;
+            int cmp = this[mid].TicketNumber.CompareTo(ticketNumber);
+
+            if (cmp == 0)
+            {
+                return true;
+            }
+            else if (cmp < 0)
+            {
+                left = mid + 1;
+            }
+            else
+            {
+                right = mid - 1;
+            }
+        }
+
+        return false;
 
 
 
