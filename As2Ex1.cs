@@ -1,6 +1,4 @@
-Hi All,
 
-Below are the case study questions for practice, try to solve those and send answers back in email.
 
 **CASE STUDY 1 — Threading + Singleton**
  
@@ -104,6 +102,143 @@ public class Solution
     }
 }
 ```
+
+solution : 
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
+
+public class HealthLogEntry
+{
+    public double Timestamp { get; }
+    public string ServerId { get; }
+    public string Status { get; }
+
+    public HealthLogEntry(double timestamp, string serverId, string status)
+    {
+        Timestamp = timestamp;
+        ServerId = serverId;
+        Status = status;
+    }
+}
+
+public class HealthMonitor
+{
+    private static readonly object _lock = new object();
+    private static HealthMonitor _instance;
+    
+    
+    public static HealthMonitor Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                lock (_lock)
+                {
+                    if (_instance == null)
+                    {
+                        _instance = new HealthMonitor();
+                    }
+                }
+            }
+            return _instance;
+        }
+    }
+    
+    private readonly List<HealthLogEntry> _logs;
+    private readonly object _logsLock = new object();
+    
+    private HealthMonitor()
+    {
+        _logs = new List<HealthLogEntry>();
+    }
+    
+    public void AddLog(HealthLogEntry entry)
+    {
+        lock (_logsLock)
+        {
+            _logs.Add(entry);
+        }
+    }
+    
+    public int CountStableServers()
+    {
+        lock (_logsLock)
+        {
+            
+            Dictionary<string, bool> serverHasUp = new Dictionary<string, bool>();
+            Dictionary<string, bool> serverHasDownAfterUp = new Dictionary<string, bool>();
+            
+            
+            foreach (HealthLogEntry log in _logs)
+            {
+                string serverId = log.ServerId;
+                
+                
+                if (log.Status == "UP")
+                {
+                    if (!serverHasUp.ContainsKey(serverId))
+                    {
+                        serverHasUp[serverId] = true;
+                    }
+                }
+                
+                
+                if (serverHasUp.ContainsKey(serverId) && log.Status == "DOWN")
+                {
+                    serverHasDownAfterUp[serverId] = true;
+                }
+            }
+            
+           
+            int stableCount = 0;
+            foreach (string serverId in serverHasUp.Keys)
+            {
+                
+                if (serverHasUp[serverId] && 
+                    (!serverHasDownAfterUp.ContainsKey(serverId) || !serverHasDownAfterUp[serverId]))
+                {
+                    stableCount++;
+                }
+            }
+            
+            return stableCount;
+        }
+    }
+}
+
+public class Solution
+{
+    public static void Main()
+    {
+        HealthMonitor monitor = HealthMonitor.Instance;
+
+        Thread t1 = new Thread(() =>
+        {
+            monitor.AddLog(new HealthLogEntry(1.1, "S1", "UP"));
+            monitor.AddLog(new HealthLogEntry(2.1, "S1", "UP"));
+        });
+
+        Thread t2 = new Thread(() =>
+        {
+            monitor.AddLog(new HealthLogEntry(1.5, "S2", "UP"));
+            monitor.AddLog(new HealthLogEntry(2.5, "S2", "DOWN"));
+        });
+
+        t1.Start();
+        t2.Start();
+        t1.Join();
+        t2.Join();
+
+        Debug.Assert(monitor.CountStableServers() == 1);
+
+        Console.WriteLine("All tests passed.");
+    }
+}
+
  
 **CASE STUDY 2 — Async + Arrays**
  
@@ -192,7 +327,86 @@ public class Solution
     }
 }
 ```
+solution:
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
 
-Thanks,
+public class SensorData
+{
+    public string SensorId { get; }
+    public int[] Readings { get; }
+
+    public SensorData(string line)
+    {
+        var parts = line.Split(" ");
+        SensorId = parts[0];
+        Readings = Array.ConvertAll(parts[1].Split(","), int.Parse);
+    }
+}
+
+public class SensorDataFile : List<SensorData>
+{
+    public static async Task<SensorDataFile> LoadSensorDataAsync(string filePath)
+    {
+        var file = new SensorDataFile();
+        using var reader = new StreamReader(filePath);
+        string line;
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                file.Add(new SensorData(line));
+            }
+        }
+        return file;
+    }
+
+    public int CountOverheatedSensors()
+    {
+        int count = 0;
+        for (int i = 0; i < this.Count; i++)
+        {
+            SensorData sensor = this[i];
+            bool overheated = false;
+            for (int j = 0; j < sensor.Readings.Length; j++)
+            {
+                if (sensor.Readings[j] > 40)
+                {
+                    overheated = true;
+                    break;
+                }
+            }
+            if (overheated)
+            {
+                count++;
+            }
+        }
+        return count;
+    }
+}
+
+public class Solution
+{
+    public static async Task Main()
+    {
+        string path = "sensors.txt";
+        File.WriteAllLines(path, new[]
+        {
+            "S1 30,31,32,33",
+            "S2 25,26,27,28",
+            "S3 35,42,36,37"
+        });
+
+        var data = await SensorDataFile.LoadSensorDataAsync(path);
+
+        Debug.Assert(data.CountOverheatedSensors() == 1);
+
+        Console.WriteLine("All tests passed.");
+    }
+}
+
 Maniarasi
