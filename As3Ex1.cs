@@ -1,41 +1,147 @@
-1st case study:
-private appconfig() constructor prevents instatiating appconfig from outside the class.
- public static AppConfig Instance : static property that returns singleton instnce,
-if null lock enters block, inside lock it checks again if it was null
- * ncessary  to check because another thread might have created the instance while this thread waited.
-  if still null _instance = new Appconfig(); creats the single instance and finally returns _instance.(purpose to create only 1instance)
-   public static class HandlerFactory : factory that creats the crct Ihandler based on configuration.
-     AppConfig.Instance.HandlerType; : go to global Appconfig obj and get the value of the handlertype setting.
-    HandlerFactory.Create() : calls to get Ihandler instance
-      handler.Handle("Welcome!"); : which performs the action(send msg to console).
-main() calls HandlerFactory.Create()., create() access Appconfig.instance, 
-instance sees _instance == null enters lockcreates new AppConfig() and sets handlertype.
- main() calls emailhandler.handle("welcome") and console prints msg.
+/*
+We are developing a stock trading data management software that tracks the prices of different stocks over time and provides useful statistics.
 
+The program includes three classes: 
+* Stock — represents data about a specific stock.
+* PriceRecord — holds information about a single price record for a stock.
+* StockCollection — manages a collection of price records for a particular stock and provides methods to retrieve useful statistics about the stock's prices.
 
-      2nd case study:
-_repo is a field. _repo is a reference to a repository that customerservice depends on.
- customer service method with interface type becasuse it depends in abstract methods.
- _repo = repo (_repo holds the reference to the repository implementation).
- then _repo becomes the injected repository instance (inmemorycustomerrepository)
- var customer = _repo.Get(id); ask repository to get customer with id.
- _repo is the instance that allows customerservice to access customer data.
-services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>(); :
-this registers InMemoryCustomerRepository as the implementation for ICustomerRepository
-one instance of InMemoryCustomerRepository is created and reused for every request for ICustomerRepository
-for entire life time. that why we prefer singleton.
- services.AddTransient<CustomerService>();
-A new instance of customerservice is created every time we request customerservice.
- we prefer transient here  creating new instance is inexpensive.
-   var repo = app.Services.GetRequiredService<ICustomerRepository>();
-        repo.Add(new Customer { Id = 1, Name = "Alice" });
-        repo.Add(new Customer { Id = 2, Name = "Bob" });
-di container is assigning obj that implements ICustomerRepository earlier we registered this as singleton
-singleton = one copy exists for hole app, now repo points to single shared repository obj
-var service = app.Services.GetRequiredService<CustomerService>();
-di gives customerservice instance , declared as transient
-transient = a new obj is created every time
-CustomerService constructor needs ICustomerRepository then di gives same singleton repo you created ealier
-service is new CustomerService obj, but uses the same repo with data of alice and bob
-printcustomer call _repo.get(1), it searches in _db for customer with id 1.
+Tasks:
+1. Read through and understand the code.
+2. The test for StockCollection is not passing due to a bug in the code. Make the necessary changes to StockCollection to fix the bug.
+*/
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 
+public class Stock
+{
+    public string Symbol { get; set; }
+    public string Name { get; set; }
+
+    public Stock(string symbol, string name)
+    {
+        Symbol = symbol;
+        Name = name;
+    }
+
+    public override string ToString()
+    {
+        return Name;
+    }
+}
+
+public class PriceRecord
+{
+    public Stock Stock { get; set; }
+    public int Price { get; set; }
+    public string Date { get; set; }
+
+    public PriceRecord(Stock stock, int price, string date)
+    {
+        Stock = stock;
+        Price = price;
+        Date = date;
+    }
+
+    public override string ToString()
+    {
+        return $"Stock: {Stock} Price: {Price} date: {Date}";
+    }
+}
+
+public class StockCollection
+{
+    public List<PriceRecord> PriceRecords { get; set; }
+    public Stock Stock { get; set; }
+
+    public StockCollection(Stock stock)
+    {
+        PriceRecords = new List<PriceRecord>();
+        Stock = stock;
+    }
+
+    public int GetNumPriceRecords()
+    {
+        return PriceRecords.Count;
+    }
+
+    public void AddPriceRecord(PriceRecord priceRecord)
+    {
+        if (!priceRecord.Stock.Equals(Stock))
+            throw new ArgumentException("PriceRecord's Stock is not the same as the StockCollection's");
+
+        PriceRecords.Add(priceRecord);
+    }
+
+    // BUG: These methods throw exceptions if PriceRecords is empty
+    public int? GetMaxPrice()
+    {
+        return PriceRecords.Max(priceRecord => priceRecord.Price);
+    }
+
+    public int? GetMinPrice()
+    {
+        return PriceRecords.Min(priceRecord => priceRecord.Price);
+    }
+
+    public double? GetAvgPrice()
+    {
+        return PriceRecords.Average(priceRecord => priceRecord.Price);
+    }
+}
+
+public class Solution
+{
+    public static void Main(String[] args) {
+        TestPriceRecord();
+        TestStockCollection();
+    }
+    
+    public static void TestPriceRecord()
+    {
+        Console.WriteLine("Running TestPriceRecord");
+        Stock TestStock = new Stock("AAPL", "Apple Inc.");
+        PriceRecord TestPriceRecord = new PriceRecord(TestStock, 100, "2023-07-01");
+        Console.WriteLine(TestPriceRecord.ToString());
+        Debug.Assert(TestPriceRecord.Stock == TestStock);
+        Debug.Assert(TestPriceRecord.Price == 100);
+        Debug.Assert(TestPriceRecord.Date == "2023-07-01");
+    }
+    
+    public static StockCollection MakeStockCollection(Stock Stock, List<Tuple<int, string>> PriceData)
+    {
+        StockCollection StockCollection = new StockCollection(Stock);
+        foreach (Tuple<int, string> PriceRecordData in PriceData)
+        {
+            PriceRecord PriceRecord = new PriceRecord(Stock, PriceRecordData.Item1, PriceRecordData.Item2);
+            StockCollection.AddPriceRecord(PriceRecord);
+        }
+        return StockCollection;
+    }
+    
+    public static void TestStockCollection()
+    {
+        Console.WriteLine("Running TestStockCollection");
+        Stock TestStock = new Stock("AAPL", "Apple Inc.");
+        StockCollection StockCollection = new StockCollection(TestStock);
+        Debug.Assert(StockCollection.GetNumPriceRecords() == 0);
+        Debug.Assert(StockCollection.GetMaxPrice() == null);
+        Debug.Assert(StockCollection.GetMinPrice() == null);
+        Debug.Assert(StockCollection.GetAvgPrice() == null);
+
+        List<Tuple<int, string>> PriceData = new List<Tuple<int, string>>
+        {
+            new Tuple<int, string>(110, "2023-06-29"),
+            new Tuple<int, string>(112, "2023-07-01"),
+            new Tuple<int, string>(90, "2023-06-28"),
+            new Tuple<int, string>(105, "2023-07-06")
+        };
+        TestStock = new Stock("AAPL", "Apple Inc.");
+        StockCollection = MakeStockCollection(TestStock, PriceData);
+        Debug.Assert(StockCollection.GetNumPriceRecords() == PriceData.Count);
+        Debug.Assert(StockCollection.GetMaxPrice() == 112);
+        Debug.Assert(StockCollection.GetMinPrice() == 90);
+        Debug.Assert(StockCollection.GetAvgPrice().GetValueOrDefault() - 104.25m) < 0.1m;
+    }
+}
