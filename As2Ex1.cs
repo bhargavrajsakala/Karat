@@ -1,412 +1,120 @@
-
-
-**CASE STUDY 1 — Threading + Singleton**
- 
-**Server Health Monitoring System**
- 
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
- 
 /*
-We are writing software to monitor health check pings from multiple servers
-in a data center.
- 
-Each server periodically sends a health ping which is logged in memory.
- 
-Log format:
-<timestamp> <serverId> <status>
- 
-status can be:
-- UP
-- DOWN
- 
-The monitoring service runs in a multi-threaded environment where
-multiple threads record health pings at the same time.
- 
-There must be ONLY ONE INSTANCE of HealthMonitor in the application
-because it represents a centralized monitoring system.
- 
-A server is considered "STABLE" if:
-- It has at least one UP status
-- It never goes DOWN after its first UP
- 
-1-1) Implement the HealthMonitor as a THREAD-SAFE SINGLETON
-1-2) Write a function CountStableServers()
-     that returns how many servers are stable
+/*
+We are writing software to analyze logs for toll booths on a highway. This highway is a divided highway with limited access; the only way on to or off of the highway is through a toll booth.
+
+There are three types of toll booths:
+* ENTRY (E in the diagram) toll booths, where a car goes through a booth as it enters the highway.
+* EXIT (X in the diagram) toll booths, where a car goes through a booth as it exits the highway.
+* MAINROAD (M in the diagram), which have sensors that record a license plate as a car drives through at full speed.
+
+
+        Exit Booth                         Entry Booth
+            |                                   |
+            X                                   E
+             \                                 /
+---<------------<---------M---------<-----------<---------<----
+                                         (West-bound side)
+
+===============================================================
+
+                                         (East-bound side)
+------>--------->---------M--------->--------->--------->------
+             /                                 \
+            E                                   X
+            |                                   |
+        Entry Booth                         Exit Booth
 */
- 
-public class HealthLogEntry
-{
-    public double Timestamp { get; }
-    public string ServerId { get; }
-    public string Status { get; }
- 
-    public HealthLogEntry(double timestamp, string serverId, string status)
-    {
-        Timestamp = timestamp;
-        ServerId = serverId;
-        Status = status;
-    }
-}
- 
-public class HealthMonitor
-{
-    // TODO:
-    // - Make this class a thread-safe singleton
-    // - Store logs in a thread-safe collection
- 
-    public void AddLog(HealthLogEntry entry)
-    {
-        // TODO: Thread-safe add
-    }
- 
-    /*
-    1-3) Implement this function
-    */
-    public int CountStableServers()
-    {
-        // TODO
-        return 0;
-    }
-}
- 
-public class Solution
-{
-    public static void Main()
-    {
-        HealthMonitor monitor = HealthMonitor.Instance;
- 
-        Thread t1 = new Thread(() =>
-        {
-            monitor.AddLog(new HealthLogEntry(1.1, "S1", "UP"));
-            monitor.AddLog(new HealthLogEntry(2.1, "S1", "UP"));
-        });
- 
-        Thread t2 = new Thread(() =>
-        {
-            monitor.AddLog(new HealthLogEntry(1.5, "S2", "UP"));
-            monitor.AddLog(new HealthLogEntry(2.5, "S2", "DOWN"));
-        });
- 
-        t1.Start();
-        t2.Start();
-        t1.Join();
-        t2.Join();
- 
-        Debug.Assert(monitor.CountStableServers() == 1);
- 
-        Console.WriteLine("All tests passed.");
-    }
-}
-```
 
-solution : 
+/*
+For our first task:
+1:1) Read through and understand the code and comments below. Feel free to run the code and tests.
+1:2) The tests are not passing due to a bug in the code. Make the necessary changes to LogEntry to fix the bug.
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-
-public class HealthLogEntry
-{
-    public double Timestamp { get; }
-    public string ServerId { get; }
-    public string Status { get; }
-
-    public HealthLogEntry(double timestamp, string serverId, string status)
-    {
-        Timestamp = timestamp;
-        ServerId = serverId;
-        Status = status;
-    }
-}
-
-public class HealthMonitor
-{
-    private static readonly object _lock = new object();
-    private static HealthMonitor _instance;
-    
-    
-    public static HealthMonitor Instance
-    {
-        get
-        {
-            if (_instance == null)
-            {
-                lock (_lock)
-                {
-                    if (_instance == null)
-                    {
-                        _instance = new HealthMonitor();
-                    }
-                }
-            }
-            return _instance;
-        }
-    }
-    
-    private readonly List<HealthLogEntry> _logs;
-    private readonly object _logsLock = new object();
-    
-    private HealthMonitor()
-    {
-        _logs = new List<HealthLogEntry>();
-    }
-    
-    public void AddLog(HealthLogEntry entry)
-    {
-        lock (_logsLock)
-        {
-            _logs.Add(entry);
-        }
-    }
-    
-    public int CountStableServers()
-    {
-        lock (_logsLock)
-        {
-            
-            Dictionary<string, bool> serverHasUp = new Dictionary<string, bool>();
-            Dictionary<string, bool> serverHasDownAfterUp = new Dictionary<string, bool>();
-            
-            
-            foreach (HealthLogEntry log in _logs)
-            {
-                string serverId = log.ServerId;
-                
-                
-                if (log.Status == "UP")
-                {
-                    if (!serverHasUp.ContainsKey(serverId))
-                    {
-                        serverHasUp[serverId] = true;
-                    }
-                }
-                
-                
-                if (serverHasUp.ContainsKey(serverId) && log.Status == "DOWN")
-                {
-                    serverHasDownAfterUp[serverId] = true;
-                }
-            }
-            
-           
-            int stableCount = 0;
-            foreach (string serverId in serverHasUp.Keys)
-            {
-                
-                if (serverHasUp[serverId] && 
-                    (!serverHasDownAfterUp.ContainsKey(serverId) || !serverHasDownAfterUp[serverId]))
-                {
-                    stableCount++;
-                }
-            }
-            
-            return stableCount;
-        }
-    }
-}
-
-public class Solution
-{
-    public static void Main()
-    {
-        HealthMonitor monitor = HealthMonitor.Instance;
-
-        Thread t1 = new Thread(() =>
-        {
-            monitor.AddLog(new HealthLogEntry(1.1, "S1", "UP"));
-            monitor.AddLog(new HealthLogEntry(2.1, "S1", "UP"));
-        });
-
-        Thread t2 = new Thread(() =>
-        {
-            monitor.AddLog(new HealthLogEntry(1.5, "S2", "UP"));
-            monitor.AddLog(new HealthLogEntry(2.5, "S2", "DOWN"));
-        });
-
-        t1.Start();
-        t2.Start();
-        t1.Join();
-        t2.Join();
-
-        Debug.Assert(monitor.CountStableServers() == 1);
-
-        Console.WriteLine("All tests passed.");
-    }
-}
-
- 
-**CASE STUDY 2 — Async + Arrays**
- 
-**Weather Sensor Data Processing System**
- 
-```csharp
+*/
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Threading.Tasks;
- 
-/*
-We are writing software to process temperature data collected from
-multiple weather sensors.
- 
-Each sensor reports a fixed number of readings per day.
-Data for each sensor is stored in an ARRAY.
- 
-Log file format:
-<sensorId> <comma-separated temperature readings>
- 
-Example:
-S1 30,31,32,33
-S2 25,26,27,28
- 
-A sensor is considered "OVERHEATED" if:
-- ANY temperature reading exceeds 40 degrees
- 
-The data file can be very large, so it must be read asynchronously.
- 
-1-1) Write an async function LoadSensorDataAsync()
-     that reads the file asynchronously and returns sensor data
-1-2) Write a function CountOverheatedSensors()
-     that returns how many sensors are overheated
-*/
- 
-public class SensorData
-{
-    public string SensorId { get; }
-    public int[] Readings { get; }
- 
-    public SensorData(string line)
-    {
-        var parts = line.Split(" ");
-        SensorId = parts[0];
-        Readings = Array.ConvertAll(parts[1].Split(","), int.Parse);
-    }
-}
- 
-public class SensorDataFile : List<SensorData>
-{
-    public static async Task<SensorDataFile> LoadSensorDataAsync(string filePath)
-    {
-        // TODO: Async file read + parsing
-        return null;
-    }
- 
-    /*
-    2-1) Implement this function
-    */
-    public int CountOverheatedSensors()
-    {
-        // TODO
-        return 0;
-    }
-}
- 
-public class Solution
-{
-    public static async Task Main()
-    {
-        string path = "sensors.txt";
-        File.WriteAllLines(path, new[]
-        {
-            "S1 30,31,32,33",
-            "S2 25,26,27,28",
-            "S3 35,42,36,37"
-        });
- 
-        var data = await SensorDataFile.LoadSensorDataAsync(path);
- 
-        Debug.Assert(data.CountOverheatedSensors() == 1);
- 
-        Console.WriteLine("All tests passed.");
-    }
-}
-```
-solution:
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Threading.Tasks;
-
-public class SensorData
+public class LogEntry
 {
-    public string SensorId { get; }
-    public int[] Readings { get; }
+    public string Timestamp { get; private set; }
+    public string LicensePlate { get; private set; }
+    public string BoothType { get; private set; }
+    public int Location { get; private set; }
+    public string Direction { get; private set; }
 
-    public SensorData(string line)
+    public LogEntry(string logLine)
     {
-        var parts = line.Split(" ");
-        SensorId = parts[0];
-        Readings = Array.ConvertAll(parts[1].Split(","), int.Parse);
+        string[] tokens = logLine.Split(' ');
+        Timestamp = tokens[0]; 
+        LicensePlate = tokens[1];
+        BoothType = tokens[3];
+        Location = int.Parse(tokens[2].Substring(0, tokens[2].Length - 1));
+        char directionLetter = tokens[2][tokens[2].Length - 1];
+        if (directionLetter == 'E') Direction = "EAST";
+        else if (directionLetter == 'W') Direction = "WEST";
+        else Debug.Assert(false, "Invalid direction");
+    }
+
+    public override string ToString()
+    {
+        return string.Format("<LogEntry timestamp: {0}  license: {1}  location: {2}  direction: {3}  booth type: {4}>",
+            Timestamp, LicensePlate, Location, Direction, BoothType);
     }
 }
 
-public class SensorDataFile : List<SensorData>
+public class LogFile : List<LogEntry>
 {
-    public static async Task<SensorDataFile> LoadSensorDataAsync(string filePath)
+    public LogFile(StringReader sr)
     {
-        var file = new SensorDataFile();
-        using var reader = new StreamReader(filePath);
         string line;
-        while ((line = await reader.ReadLineAsync()) != null)
+        while ((line = sr.ReadLine()) != null)
         {
-            if (!string.IsNullOrWhiteSpace(line))
-            {
-                file.Add(new SensorData(line));
-            }
+            LogEntry logEntry = new LogEntry(line.Trim());
+            Add(logEntry);
         }
-        return file;
-    }
-
-    public int CountOverheatedSensors()
-    {
-        int count = 0;
-        for (int i = 0; i < this.Count; i++)
-        {
-            SensorData sensor = this[i];
-            bool overheated = false;
-            for (int j = 0; j < sensor.Readings.Length; j++)
-            {
-                if (sensor.Readings[j] > 40)
-                {
-                    overheated = true;
-                    break;
-                }
-            }
-            if (overheated)
-            {
-                count++;
-            }
-        }
-        return count;
     }
 }
 
 public class Solution
 {
-    public static async Task Main()
+    private static void AssertEqual(object actual, object expected, string name)
     {
-        string path = "sensors.txt";
-        File.WriteAllLines(path, new[]
+        if (!object.Equals(actual, expected))
         {
-            "S1 30,31,32,33",
-            "S2 25,26,27,28",
-            "S3 35,42,36,37"
-        });
+            Console.WriteLine("TEST FAILED: {0}\nExpected: {1} ({2})\nActual:   {3} ({4})",
+                name, expected, expected?.GetType(), actual, actual?.GetType());
+            throw new Exception("Test failed: " + name);
+        }
+        else
+        {
+            Console.WriteLine("OK: {0}", name);
+        }
+    }
 
-        var data = await SensorDataFile.LoadSensorDataAsync(path);
+    public static void TestLogEntry()
+    {
+        string logLine = "44776.619 KTB918 310E MAINROAD";
+        LogEntry logEntry = new LogEntry(logLine);
+        AssertEqual(logEntry.Timestamp, 44776.619, "Timestamp");
+        AssertEqual(logEntry.LicensePlate, "KTB918", "LicensePlate");
+        AssertEqual(logEntry.Location, 310, "Location");
+        AssertEqual(logEntry.Direction, "EAST", "Direction");
+        AssertEqual(logEntry.BoothType, "MAINROAD", "BoothType");
 
-        Debug.Assert(data.CountOverheatedSensors() == 1);
+        logLine = "52160.132 ABC123 400W ENTRY";
+        logEntry = new LogEntry(logLine);
+        AssertEqual(logEntry.Timestamp, 52160.132, "Timestamp2");
+        AssertEqual(logEntry.LicensePlate, "ABC123", "LicensePlate2");
+        AssertEqual(logEntry.Location, 400, "Location2");
+        AssertEqual(logEntry.Direction, "WEST", "Direction2");
+        AssertEqual(logEntry.BoothType, "ENTRY", "BoothType2");
+    }
 
+    public static void Main()
+    {
+        TestLogEntry();
         Console.WriteLine("All tests passed.");
     }
 }
-
-Maniarasi
