@@ -1,214 +1,115 @@
-_stock = newStock; 
-means that the value of the parameter newStock passed to the SetStock method is being assigned to the private field _stock.
-Why this assignment is done:
-_stock is a private variable inside the Inventory class that holds the current stock quantity.
-newStock is the new value that someone wants to set for the stock.
-When SetStock is called with a new stock value, the assignment updates the internal _stock field to that new value.
-Calls the NotifyObservers method on the current object (an instance of Inventory).
-Passes a string message into that method. This string is created using string interpolation (the $"" syntax) which inserts the current value of _stock into the message. For example, if _stock is 5, the message becomes "Stock is low: 5 items left."
-Inside the NotifyObservers method, this message is sent to all attached observers by calling their Update methods.
-Observers call Attach on the subject to register themselves.
-The subject adds them to the _observers list.
-When the subject’s state (e.g., stock count) changes and meets a condition, it calls NotifyObservers.
-NotifyObservers loops through the _observers list and calls Update on each observer.
-This triggers each observer’s individual response to the update.
-    
-    
-CASE STUDY 2— Observer Pattern for Inventory Notifications
+/*
 
-**Theme:** Stock Management
-**Pattern:** Observer (Publisher–Subscriber)
-**Goal:** Notify different departments when inventory level changes.
+/*
+We are writing software to analyze logs for toll booths on a highway. This highway is a divided highway with limited access; the only way on to or off of the highway is through a toll booth.
 
----
+There are three types of toll booths:
+* ENTRY (E in the diagram) toll booths, where a car goes through a booth as it enters the highway.
+* EXIT (X in the diagram) toll booths, where a car goes through a booth as it exits the highway.
+* MAINROAD (M in the diagram), which have sensors that record a license plate as a car drives through at full speed.
 
-*Requirement*
+For this task:
+1-1) Read through and understand the code and comments below. Feel free to run the code and tests.
+1-2) The tests are not passing due to a bug in the code. Make the necessary changes to LogEntry to fix the bug.
 
-Implement an inventory tracking system where:
-
-* `Inventory` acts as the **Subject**.
-* Observers include:
-
-  * `WarehouseNotifier`
-  * `BillingNotifier`
-  * `MobileAppNotifier`
-* When stock drops below threshold, all observers must be notified.
-* Complete the missing parts in the code below.
-
----
-
-
-```csharp
-public interface IObserver
-{
-    void Update(string message);
-}
-
-public interface ISubject
-{
-    void Attach(IObserver observer);
-    void Detach(IObserver observer);
-    void NotifyObservers(string msg);
-}
-
-public class Inventory : ISubject
-{
-    private List<IObserver> _observers = new();
-    private int _stock;
-
-    public void SetStock(int newStock)
-    {
-        _stock = newStock;
-        
-        if (_stock < 10)
-        {
-            // TODO: notify observers
-        }
-    }
-
-    public void Attach(IObserver observer)
-    {
-        // TODO
-    }
-
-    public void Detach(IObserver observer)
-    {
-        // TODO
-    }
-
-    public void NotifyObservers(string msg)
-    {
-        // TODO
-    }
-}
-
-public class WarehouseNotifier : IObserver
-{
-    public void Update(string message)
-    {
-        // TODO: show message
-    }
-}
-
-public class BillingNotifier : IObserver
-{
-    public void Update(string message)
-    {
-        // TODO
-    }
-}
-
-public class MobileAppNotifier : IObserver
-{
-    public void Update(string message)
-    {
-        // TODO
-    }
-}
-
-class Program
-{
-    static void Main()
-    {
-        var inventory = new Inventory();
-
-        // TODO: attach observers
-
-        inventory.SetStock(5); // triggers notification
-    }
-}
-```
-
-code :
-
+*/
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 
-public interface IObserver
+public class LogEntry
 {
-    void Update(string message);
+    public string Timestamp { get; private set; }
+    public string LicensePlate { get; private set; }
+    public string BoothType { get; private set; }
+    public int Location { get; private set; }
+    public string Direction { get; private set; }
+
+    public LogEntry(string logLine)
+    {
+        string[] tokens = logLine.Split(' ');
+        Timestamp = tokens[0]; 
+        LicensePlate = tokens[1];
+        BoothType = tokens[3];
+        Location = int.Parse(tokens[2].Substring(0, tokens[2].Length - 1));
+        char directionLetter = tokens[2][tokens[2].Length - 1];
+        if (directionLetter == 'E') Direction = "EAST";
+        else if (directionLetter == 'W') Direction = "WEST";
+        else Debug.Assert(false, "Invalid direction");
+    }
+
+    public override string ToString()
+    {
+        return string.Format("<LogEntry timestamp: {0}  license: {1}  location: {2}  direction: {3}  booth type: {4}>",
+            Timestamp, LicensePlate, Location, Direction, BoothType);
+    }
 }
 
-public interface ISubject
+public class LogFile : List<LogEntry>
 {
-    void Attach(IObserver observer);
-    void Detach(IObserver observer);
-    void NotifyObservers(string msg);
-}
-
-public class Inventory : ISubject
-{
-    private List<IObserver> _observers = new();
-    private int _stock;
-
-    public void SetStock(int newStock)
+     public LogFile(StringReader sr)
     {
-        _stock = newStock;
-
-        if (_stock < 10)
+        string line;
+        while ((line = sr.ReadLine()) != null)
         {
-            NotifyObservers($"Stock is low: {_stock} items left.");
-        }
-    }
-
-    public void Attach(IObserver observer)
-    {
-        if (!_observers.Contains(observer))
-            _observers.Add(observer);
-    }
-
-    public void Detach(IObserver observer)
-    {
-        if (_observers.Contains(observer))
-            _observers.Remove(observer);
-    }
-
-    public void NotifyObservers(string msg)
-    {
-        foreach (var observer in _observers)
-        {
-            observer.Update(msg);
+            LogEntry logEntry = new LogEntry(line.Trim());
+            Add(logEntry);
         }
     }
 }
 
-public class WarehouseNotifier : IObserver
+public class Solution
 {
-    public void Update(string message)
+    private static void AssertEqual(object actual, object expected, string name)
     {
-        Console.WriteLine($"Warehouse Notification: {message}");
+        if (!object.Equals(actual, expected))
+        {
+            Console.WriteLine("TEST FAILED: {0}\nExpected: {1}\nActual:   {2}", name, expected, actual);
+            throw new Exception("Test failed: " + name);
+        }
+        else
+        {
+            Console.WriteLine("OK: {0}", name);
+        }
+    }
+
+    public static void TestLogEntry()
+    {
+        string logLine = "44776.619 KTB918 310E MAINROAD";
+        LogEntry logEntry = new LogEntry(logLine);
+        AssertEqual(logEntry.Timestamp, 44776.619, "Timestamp");
+        AssertEqual(logEntry.LicensePlate, "KTB918", "LicensePlate");
+        AssertEqual(logEntry.Location, 310, "Location");
+        AssertEqual(logEntry.Direction, "EAST", "Direction");
+        AssertEqual(logEntry.BoothType, "MAINROAD", "BoothType");
+
+        logLine = "52160.132 ABC123 400W ENTRY";
+        logEntry = new LogEntry(logLine);
+        AssertEqual(logEntry.Timestamp, 52160.132, "Timestamp2");
+        AssertEqual(logEntry.LicensePlate, "ABC123", "LicensePlate2");
+        AssertEqual(logEntry.Location, 400, "Location2");
+        AssertEqual(logEntry.Direction, "WEST", "Direction2");
+        AssertEqual(logEntry.BoothType, "ENTRY", "BoothType2");
+    }
+
+    public static void TestLogFile()
+    {
+        string sample = @"44776.619 KTB918 310E MAINROAD
+52160.132 ABC123 400W ENTRY
+34400.409 SXY288 210E ENTRY";
+        LogFile logFile = new LogFile(new StringReader(sample));
+        AssertEqual(logFile.Count, 3, "LogFile Count");
+        foreach (LogEntry e in logFile)
+        {
+            if (e == null) throw new Exception("LogEntry is null");
+        }
+    }
+
+    public static void Main()
+    {
+        TestLogFile();
+        TestLogEntry();
+        Console.WriteLine("All tests passed.");
     }
 }
-
-public class BillingNotifier : IObserver
-{
-    public void Update(string message)
-    {
-        Console.WriteLine($"Billing Notification: {message}");
-    }
-}
-
-public class MobileAppNotifier : IObserver
-{
-    public void Update(string message)
-    {
-        Console.WriteLine($"Mobile App Notification: {message}");
-    }
-}
-
-class Program
-{
-    static void Main()
-    {
-        var inventory = new Inventory();
-
-        // Attach observers
-        inventory.Attach(new WarehouseNotifier());
-        inventory.Attach(new BillingNotifier());
-        inventory.Attach(new MobileAppNotifier());
-
-        // Set stock to trigger notification
-        inventory.SetStock(5);
-    }
-}
-
