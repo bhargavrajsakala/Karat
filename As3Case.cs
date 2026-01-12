@@ -1,133 +1,40 @@
-ProcessNext() calls _queue.Dequeue() to remove the next job from the queue.
-This removed job is assigned to nextJob.
-Then the code uses nextJob.Id and nextJob.Description to show what job is being processed.
- If the queue has jobs with:
-Id=1, Description="Email sync"
-Id=2, Description="Backup database"
-Calling ProcessNext() removes job 1 from the queue and assigns it to nextJob.
-Then nextJob.Id is 1, and nextJob.Description is "Email sync," which are used in the processing message, e.g.:
-Processing job 1: Email sync   
-scheduler.IsEmpty is a Boolean property that returns true if there are no jobs left in the queue.
-while the scheduler is NOT empty," or "while there are jobs remaining."
- This calls the ProcessNext method on the scheduler, which:
-Removes the next job from the queue.
-Processes it (e.g., prints the job details).
-Each call processes exactly one job in FIFO order.   
+/*
 
+We have collected some HTTP/HTTPS referrer URLs from our web server. This data can be found at the address https://public.karat.io/content/referrals_4.txt, where each line contains a URL and nothing else.
 
-CASE STUDY 1 — Task Scheduler Using Queue (FIFO)
+We want to learn more about the domains that refer traffic to our site.
 
-**Concepts:** Queue, basic classes, simple scheduling
-**Theme:** Job processing / background workers
+Write code that reads the first URL in the log file and prints the full domain name and the last two pieces of the domain (usually this is the second level domain) from a given URL.
 
-Requirements
+For this question, you can't use URL-parsing libraries.
 
-Implement a lightweight job scheduler where:
+Examples:
+"http://world.news.yahoo.com/news/olympics/" -> ["world.news.yahoo.com", "yahoo.com"]
+"https://www.yahoo.co.uk/#finance" -> ["www.yahoo.co.uk", "co.uk"]
+"https://google.com/" -> ["google.com", "google.com"]
+"https://google.com/search?query=groceries" -> ["google.com", "google.com"]
 
-* Incoming tasks are stored in a **Queue**.
-* The scheduler processes tasks in FIFO order.
-* Each task has:
+Expected output for the file: ["world.news.yahoo.com", "yahoo.com"]
 
-  * `Id`
-  * `Description`
-* When the user calls `ProcessNext()`, the scheduler should:
+Complexity Variable:
+L = length of the URL string
+      
+*/
 
-  * Dequeue next job
-  * Process it (console output)
-* Complete missing pieces in the half-implemented code.
-
-
-```csharp
-public class Job
-{
-    public int Id { get; set; }
-    public string Description { get; set; }
-}
-
-public class JobScheduler
-{
-    private Queue<Job> _queue = new Queue<Job>();
-
-    public void AddJob(Job job)
-    {
-        // TODO: enqueue job
-    }
-
-    public void ProcessNext()
-    {
-        // TODO: check if queue empty
-        // TODO: dequeue next job
-        // TODO: print processing message
-    }
-}
-
-class Program
-{
-    static void Main()
-    {
-        var scheduler = new JobScheduler();
-
-        scheduler.AddJob(new Job { Id = 1, Description = "Email sync" });
-        scheduler.AddJob(new Job { Id = 2, Description = "Backup database" });
-
-        // TODO: call ProcessNext twice  
-        // TODO: process remaining jobs
-    }
-}
-```
-
-code : 
 using System;
-using System.Collections.Generic;
-
-public class Job
-{
-    public int Id { get; set; }
-    public string Description { get; set; }
-}
-
-public class JobScheduler
-{
-    private Queue<Job> _queue = new Queue<Job>();
-
-    public void AddJob(Job job)
-    {
-        _queue.Enqueue(job); // Enqueue the job
-    }
-
-    public void ProcessNext()
-    {
-        if (_queue.Count == 0)
-        {
-            Console.WriteLine("No jobs to process.");
-            return;
-        }
-
-        Job nextJob = _queue.Dequeue(); // Dequeue next job
-        Console.WriteLine($"Processing job {nextJob.Id}: {nextJob.Description}"); // Processing message
-    }
-}
+using System.Net.Http;
+using System.Threading.Tasks;
 
 class Program
 {
-    static void Main()
+   static void Main(string[] args)
     {
-        var scheduler = new JobScheduler();
+    }
 
-        scheduler.AddJob(new Job { Id = 1, Description = "Email sync" });
-        scheduler.AddJob(new Job { Id = 2, Description = "Backup database" });
-        scheduler.AddJob(new Job { Id = 3, Description = "Generate reports" });
-
-        scheduler.ProcessNext(); // Process job 1
-        scheduler.ProcessNext(); // Process job 2
-
-        // Process any remaining jobs
-        while (!scheduler.IsEmpty)
-        {
-            scheduler.ProcessNext();
-        }
+    static string[] ExtractDomains(string url)
+    {
+        // TODO: Implement logic to extract [fullDomain, secondLevelDomain]
+        return new string[] { "", "" };
     }
 }
-
-
-
+      
