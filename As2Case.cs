@@ -25,6 +25,24 @@ public class Program {
     }
 }
 
+solution:
+    public static List<int> FindIntersection(List<int> list1, List<int> list2) {
+        return list1.Intersect(list2).ToList();
+
+        Simple math:
+
+Union = ALL numbers [1,2,3,4,5,6]  , Intersect = ONLY common [3,4] , Except = only in list1 [1,2]
+
+Your code: list1.Intersect(list2) automatically:
+
+Converts list2 to super-fast HashSet
+
+Finds matching numbers from list1
+
+Removes duplicates
+
+Returns clean result
+
 
 
 
@@ -45,6 +63,13 @@ public class Program {
     }
 }
 
+        solution:
+        public static double CalculateDiscount(int age, bool isMember) {
+    double memberDiscount = isMember ? 0.20 : 0.10;
+    double adultDiscount = isMember ? 0.15 : 0.00;
+    
+    return age < 18 ? memberDiscount : adultDiscount;
+}
 
 
 
@@ -74,6 +99,27 @@ public class Program {
     }
 }
 
+        solution:
+        
+        public static List<string> ValidateUsernames(List<string> usernames) {
+    List<string> valid = new List<string>();
+    
+    foreach(var name in usernames) {
+        bool lengthOk = name.Length >= 5 && name.Length <= 10;
+        bool noSpaces = !name.Contains(" ");
+        
+        if(lengthOk && noSpaces) {
+            valid.Add(name);
+        }
+    }
+    return valid;
+}
+
+        Split conditions into clear booleans instead of one long if
+            >= 5 = At least 5 chars (not too short)
+            <= 10 = Maximum 10 chars (not too long)
+
+
 
 
 
@@ -93,9 +139,33 @@ public class Message
 }
 
 
+        solution:
+  Use Span<T> when you need to perform operations on a portion of a string without allocating new memory.      
+        
+
+        public class Message
+{
+    public string Id { get; set; }
+    public string Value { get; set; }
+
+    public static Message Parse(ReadOnlySpan<char> csv)
+    {
+        var commaIndex = csv.IndexOf(',');
+        var idSpan = csv.Slice(0, commaIndex);
+        var valueSpan = csv.Slice(commaIndex + 1);
+        
+        return new Message 
+        { 
+            Id = idSpan.ToString().Trim(),
+            Value = valueSpan.ToString().Trim()
+        };
+    }
+}
 
 
-performance:
+
+
+performance tasks:
 
 
 
@@ -116,6 +186,23 @@ public class Program {
     }
 }
 
+        solution:
+        public static int SumEvenNumbers(int[] arr) {
+    int sum = 0;
+    for(int i = 0; i < arr.Length; i++) {
+        if((arr[i] & 1) == 0) {  // Bitwise AND - faster than % for even arr[i]&1 == 0 and for odd simply !=0
+            sum += arr[i];
+        }
+    }
+    return sum;
+}
+
+        Even: (arr[i] & 1) == 0  // Last bit = 0
+Odd:  (arr[i] & 1) != 0  // Last bit = 1 ✓
+
+        LINQ ❌	Optimized ✅
+Where() = 2 passes (filter + sum)	1 pass through array
+x % 2 = division (slow CPU op)	arr[i] & 1 = bitwise (1 CPU cycle)
 
 
 
@@ -141,7 +228,6 @@ public class Program {
         return b;
     }
 }
-
 
 
 
@@ -211,6 +297,41 @@ public void Log(string message)
 
 
 
+        2 solutions lazy or double checked lock
+
+       1.     public sealed class Logger {
+    private static readonly Lazy<Logger> _lazy = new Lazy<Logger>();
+    
+    public static Logger Instance => _lazy.Value;  // Thread-safe, lazy, ZERO locks after creation
+    
+    private Logger() { }
+    
+    public void Log(string message) {
+        Console.WriteLine($"[{DateTime.Now}] {message}");
+    }
+}
+
+
+        2.
+            private static volatile Logger _instance;
+private static readonly object _lock = new object();
+
+public static Logger Instance {
+    get {
+        if (_instance == null) {                    // 1st fast check (no lock)
+            lock (_lock) {
+                if (_instance == null) {            // 2nd check (with lock)
+                    _instance = new Logger();
+                }
+            }
+        }
+        return _instance;
+    }
+}
+
+
+
+
 /*
 The following code uses a microservice to retrieve a list of companies' data. While profiling the code, we have observed that the microservice is being called multiple times when `GetReportableCompanies` is invoked.
 */
@@ -265,6 +386,16 @@ IsVip = bool.Parse(parts[3])
 };
 }
 
+    solution: 
+
+    var companies = db.Companies.Where(...).ToList();
+
+then my understanding was with adding tolist it executes http once, store in memory that one call only linq uses the in memory list
+before it was 3+ calls count, take, concat all triger
+
+**IEnumerable = Lazy promise** (executes every enumeration)
+**ToList() = Force promise now** (materializes to memory)
+
 
 
 
@@ -287,3 +418,16 @@ public class Counter
     }
 }
 }
+
+
+   solution:
+    Interlocked.Increment doesn't work with int? (nullable int)    
+
+    public class Counter {
+    private int _value = 0;
+    public int? Value => _value == 0 ? null : _value;
+    
+    public void Increment() => Interlocked.Increment(ref _value);
+    public void Decrement() => Interlocked.Decrement(ref _value);
+}
+    
