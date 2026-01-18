@@ -80,7 +80,11 @@ public class LogFile : List<LogEntry>
     // TODO: implement CountJourneys()
     public int CountJourneys()
     {
-        throw new NotImplementedException();
+       int count = 0;
+       foreach(LogEntry entry in this){
+       if(entry.BoothType == "EXIT"){count++;}
+       }
+       return count;
     }
 }
 
@@ -139,3 +143,29 @@ public class Solution
         Console.WriteLine("All tests passed.");
     }
 }
+
+solution :
+here we need to count journeys based on entry ,mainroad and exist here i am going to write a solution that 
+in logentry if boottype is exit then we can count it has a 1 complete journey.
+    
+    public int CountJourneys()
+    {
+        int count = 0;
+
+        foreach (LogEntry record in this)
+        {
+            if (record.BoothType == "EXIT")
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+}
+
+LogFile is a List<LogEntry>
+
+Inside CountJourneys() method, this = the LogFile object itself
+
+this has all List<LogEntry> capabilities (Count, indexing, enumeration)
