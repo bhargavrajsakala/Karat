@@ -145,3 +145,11 @@ public class Solution
         Debug.Assert(StockCollection.GetAvgPrice().GetValueOrDefault() - 104.25m) < 0.1m;
     }
 }
+
+solution:
+here in test cases max,min and avg prices leads to null the test cases are failed due to that in stock collection 
+we need to write a logic that if pricerecords.count is 0 then it should return null
+
+    if(pricerecords.count == 0) {return null} return PriceRecords.Max(priceRecord => priceRecord.Price);
+if not we can use null check
+PriceRecods.Count >0 ? PriceRecords.Max(priceRecord => priceRecord.Price) : null;
