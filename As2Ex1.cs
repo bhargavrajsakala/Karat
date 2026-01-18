@@ -118,3 +118,10 @@ public class Solution
         Console.WriteLine("All tests passed.");
     }
 }
+
+/*solution: 
+here we can solve this problem two ways 
+1. converting time stamp into double
+public double Timestamp { get; private set; }
+Timestamp = double.Parse(tokens[0]);
+2. way was converting time stamps in test log entry to strings.
