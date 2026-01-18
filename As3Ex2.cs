@@ -166,4 +166,73 @@ public class Solution
        Debug.Assert(StockCollection.GetBiggestChange().Equals(new Tuple<int,string,string>(0, "", "")));
    }
 }
-      
+
+solution:
+“The problem is about analyzing stock price data over time.
+Each stock has multiple price records, where every record contains a price and a date.
+The task is to find the biggest price change between two consecutive days.
+Consecutive means there are no other price records between those two dates when sorted by date.”
+“First, I handled the edge case.
+If there are fewer than two price records, it’s impossible to calculate a price change,
+so the method simply returns a message saying ‘not enough records’.”
+“To solve the problem, I first sorted the price records by date
+“After sorting, I loop through the list starting from the second record.
+For each record, I calculate the absolute difference between the current price and the previous day’s price.
+I keep track of the maximum difference and store the corresponding two dates whenever I find a bigger change.”
+
+public string GetBiggestChange()
+{
+    if (PriceRecords.Count < 2)
+        return "not enough records";
+
+    var records = PriceRecords.OrderBy(r => r.Date).ToList();
+
+    int biggestChange = 0;
+    string fromDate = "";
+    string toDate = "";
+
+    for (int i = 1; i < records.Count; i++)
+    {
+        int change = Math.Abs(records[i].Price - records[i - 1].Price);
+
+        if (change > biggestChange)
+        {
+            biggestChange = change;
+            fromDate = records[i - 1].Date;
+            toDate = records[i].Date;
+        }
+    }
+
+    return $"Biggest change is {biggestChange} between {fromDate} and {toDate}";
+}
+
+public string GetBiggestChange()
+{
+    if (PriceRecords.Count < 2)
+        return "not enough records";
+
+    var records = PriceRecords.OrderBy(r => r.Date).ToList();
+
+    int biggestChange = 0;
+    string fromDate = "";
+    string toDate = "";
+
+    for (int i = 1; i < records.Count; i++)
+    {
+        int change = Math.Abs(records[i].Price - records[i - 1].Price);
+
+        if (change > biggestChange)
+        {
+            biggestChange = change;
+            fromDate = records[i - 1].Date;
+            toDate = records[i].Date;
+        }
+    }
+
+    return $"Biggest change is {biggestChange} between {fromDate} and {toDate}";
+}
+
+We compare the current day with the previous day
+So we need records[i] and records[i - 1]
+Subtract yesterday’s price from today’s price
+Use Math.Abs() to get the absolute value
