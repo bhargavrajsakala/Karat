@@ -82,4 +82,70 @@ public class Membership
         return new Dictionary<int, double>();
     }
 }
+
+solution:
+“The problem is to manage gym members and their workout sessions.
+Each member can have multiple workouts, and each workout has a start and end time.
+ “I stored members in a list and workouts in a dictionary.
+The dictionary key is the member ID, and the value is a list of workouts for that member.”
+ “When adding a workout, I first check if the member exists by looping through the members list and matching the member ID.”
+ “If the member doesn’t exist, I immediately return, so invalid workouts are ignored.”
+ “If the member exists, I check whether the dictionary already has an entry for that member.
+If not, I create a new list and then add the workout.”
+in getaverageworkouts “To calculate averages, I loop through each entry in the workouts dictionary.”
+“I handled edge cases like:
+Workouts for non-existent members
+Multiple workouts per member
+Correct average calculation using double division”
+
+
+    public void AddWorkout(int memberId, Workout workout)
+    {
+        // 1) Check if member exists
+        bool memberExists = false;
+        for (int i = 0; i < members.Count; i++)
+        {
+            if (members[i].MemberId == memberId)
+            {
+                memberExists = true;
+                break;
+            }
+        }
+
+        // If member doesn't exist, ignore
+        if (!memberExists)
+            return;
+
+        // 2) Add workout
+        if (!workoutsByMember.ContainsKey(memberId))
+        {
+            workoutsByMember[memberId] = new List<Workout>();
+        }
+
+        workoutsByMember[memberId].Add(workout);
+    }
+
+    public Dictionary<int, double> GetAverageWorkoutDurations()
+    {
+        Dictionary<int, double> result = new Dictionary<int, double>();
+
+        foreach (KeyValuePair<int, List<Workout>> entry in workoutsByMember)
+        {
+            int memberId = entry.Key;
+            List<Workout> workoutList = entry.Value;
+
+            int totalDuration = 0;
+            for (int i = 0; i < workoutList.Count; i++)
+            {
+                totalDuration += workoutList[i].GetDuration();
+            }
+
+            double avgDuration = (double)totalDuration / workoutList.Count;
+            result.Add(memberId, avgDuration);
+        }
+
+        return result;
+    }
+}
+
       
